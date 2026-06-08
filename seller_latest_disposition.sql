@@ -1,14 +1,3 @@
--- Seller latest call / disposition / remarks
---
--- One row per seller (constant list, 476 sellers) showing their most recent task.
---   seller_id    -> the seller
---   completed_at -> timestamp of the latest task (= last call made)
---   disposition  -> disposition of that latest task
---   remarks      -> remarks of that latest task
---
--- The created_at window is relative to the current month, so the result
--- auto-refreshes when run daily (e.g. via a BigQuery Scheduled Query).
-
 WITH latest_tasks AS (
   SELECT
     seller_id,
