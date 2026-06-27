@@ -18,6 +18,20 @@ export METABASE_API_KEY="mb_xxxxxxxx"     # never commit this
 
 ## Usage
 
+**Named shortcut** — pre-configured saved questions, no IDs to remember:
+
+```bash
+python metabase_pull.py --ob-cohort --format xlsx --out ob_cohort.xlsx
+```
+
+Currently configured shortcuts:
+
+| Flag          | Saved question                                              |
+|---------------|-------------------------------------------------------------|
+| `--ob-cohort` | #7100 `ob-cohort-query-v2` (metabase.kaip.in/question/7100) |
+
+Add more in `metabase_pull.py` under `NAMED_QUERIES`.
+
 **Saved question (card)** — find the card ID in the question URL,
 e.g. `https://metabase.kaip.in/question/123` -> card ID is `123`:
 

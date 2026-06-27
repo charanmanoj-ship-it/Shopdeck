@@ -38,6 +38,13 @@ import requests
 DEFAULT_BASE_URL = "https://metabase.kaip.in"
 VALID_FORMATS = ("xlsx", "csv", "json")
 
+# Named shortcuts for frequently-used saved questions.
+# Add more as { "shortcut-name": card_id }.  Each becomes a --flag, e.g.
+#   python metabase_pull.py --ob-cohort
+NAMED_QUERIES = {
+    "ob-cohort": 7100,  # https://metabase.kaip.in/question/7100-ob-cohort-query-v2
+}
+
 
 def build_session(api_key: str) -> requests.Session:
     session = requests.Session()
@@ -84,6 +91,12 @@ def parse_args(argv):
     src = p.add_mutually_exclusive_group(required=True)
     src.add_argument("--card", type=int, help="Saved question (card) ID to run.")
     src.add_argument("--sql", help="Ad-hoc native SQL query to run.")
+    for name, card_id in NAMED_QUERIES.items():
+        src.add_argument(
+            f"--{name}",
+            action="store_true",
+            help=f"Shortcut for saved question #{card_id}.",
+        )
     p.add_argument(
         "--database",
         type=int,
@@ -100,6 +113,10 @@ def parse_args(argv):
         help="Output file path (default: metabase_export.<format>).",
     )
     args = p.parse_args(argv)
+    # Resolve a named shortcut (e.g. --ob-cohort) into a concrete card ID.
+    for name, card_id in NAMED_QUERIES.items():
+        if getattr(args, name.replace("-", "_")):
+            args.card = card_id
     if args.sql and args.database is None:
         p.error("--database is required when using --sql")
     return args
