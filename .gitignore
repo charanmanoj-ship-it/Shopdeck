@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+
+# Local Metabase exports / secrets
+metabase_export.*
+.env
