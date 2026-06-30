@@ -3,9 +3,10 @@
 -- Status = Active / At risk / Churned (confirmed or abandoned).
 -- -----------------------------------------------------------------------------
 -- Definitions (confirmed with stakeholder):
---   QC override   : type = 'QC_type' AND disposition = 'QC COMPLETED AND OKAY'
---                   -> seller is qualified; overrides any earlier drop signal.
---   completion    : go_live_date / gtg_date  (CONFIRM if another col means "done")
+--   QC passed     : (type='QC_type' AND disposition='QC COMPLETED AND OKAY')
+--                   OR (type='QC_Check' AND disposition='QC completed')
+--                   = "completed the process"; overrides any earlier drop signal.
+--   completion    : QC passed (above) + go_live_date / gtg_date as extra markers
 --   genuine activity : any task that is NOT a churn_seller_callback and NOT a
 --                   drop disposition. (A churn call doesn't mean the seller is alive.)
 --   dormant       : no genuine activity in the last 20 days (till today).
@@ -51,8 +52,9 @@ seller_signals AS (
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
                NULL))                                                       AS last_soft_drop_date,
 
-        -- QC qualification (overrides churn)
-        MAX(IF(UPPER(type) = 'QC_TYPE' AND UPPER(disposition) = 'QC COMPLETED AND OKAY',
+        -- QC passed = "completed the process" (overrides churn). Two value-pairs.
+        MAX(IF((UPPER(type) = 'QC_TYPE'  AND UPPER(disposition) = 'QC COMPLETED AND OKAY')
+               OR (UPPER(type) = 'QC_CHECK' AND UPPER(disposition) = 'QC COMPLETED'),
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
                NULL))                                                       AS qc_completed_date,
 
