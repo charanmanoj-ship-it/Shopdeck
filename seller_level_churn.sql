@@ -12,10 +12,11 @@
 --   dormant       : no genuine activity in the last 20 days (till today).
 --
 -- Status precedence:
---   1. Active   - completed/qualified after the latest drop
+--   1. Active   - completed/qualified (QC pass / go-live) after the latest drop
 --   2. Churned  - confirmed: completed 'seller_wants_to_drop_out'
---   3. Churned  - abandoned: soft drop / opened churn callback AND dormant
---   4. At risk  - soft drop / opened churn callback but still recently active
+--   3. At risk  - drop/callback present AND a churn_seller_callback is still RUNNING
+--                 (not yet a drop-out), or seller still recently active => savable
+--   4. Churned  - abandoned: drop/callback present, nothing running, dormant (silent)
 --   5. Active   - no drop signal at all
 -- =============================================================================
 
@@ -70,6 +71,14 @@ seller_signals AS (
                                              'not_in_shopdeck_criteria','photoshoot_not_available')),
                DATE(created_at,'Asia/Kolkata'), NULL))                      AS last_active_task_date,
 
+        -- a churn_seller_callback that is still RUNNING (open) and NOT yet concluded as a
+        -- drop-out -> churn investigation in-flight => At risk, not abandoned.
+        -- ASSUMPTION: "open" = completed_at IS NULL (swap for a status column if you have one).
+        LOGICAL_OR(type = 'churn_seller_callback'
+                   AND completed_at IS NULL
+                   AND (disposition IS NULL OR disposition != 'seller_wants_to_drop_out'))
+                                                                            AS has_open_churn_callback,
+
         STRING_AGG(DISTINCT IF(disposition IN ('seller_wants_to_drop_out','asked_to_drop_the_lead',
                                                'not_in_shopdeck_criteria','photoshoot_not_available'),
                                disposition, NULL), ', ')                    AS churn_reason
@@ -93,6 +102,7 @@ seller_eval AS (
         s.last_soft_drop_date,
         s.qc_completed_date,
         s.last_churn_callback_date,
+        s.has_open_churn_callback,
         s.last_active_task_date,
         s.churn_reason,
 
@@ -120,13 +130,14 @@ seller_status AS (
             -- 2. confirmed drop-out  -> churned
             WHEN dropout_completed_date IS NOT NULL
                 THEN 'Churned'
-            -- 3. soft drop or open churn callback, and gone dormant  -> churned (abandoned)
+            -- 3. drop/callback present AND a churn callback is still RUNNING (not yet a
+            --    drop-out), or the seller is still recently active -> at risk (savable)
             WHEN (last_soft_drop_date IS NOT NULL OR last_churn_callback_date IS NOT NULL)
-                 AND is_dormant
-                THEN 'Churned'
-            -- 4. soft drop / open callback but still active  -> at risk
-            WHEN (last_soft_drop_date IS NOT NULL OR last_churn_callback_date IS NOT NULL)
+                 AND (has_open_churn_callback OR NOT is_dormant)
                 THEN 'At risk'
+            -- 4. drop/callback present, nothing running, gone silent (dormant) -> churned (abandoned)
+            WHEN (last_soft_drop_date IS NOT NULL OR last_churn_callback_date IS NOT NULL)
+                THEN 'Churned'
             ELSE 'Active'
         END                                         AS churn_status
     FROM seller_eval
@@ -158,6 +169,7 @@ SELECT
     last_positive_date,
     qc_completed_date,
     last_churn_callback_date,
+    has_open_churn_callback,
     last_active_task_date,
     is_dormant,
 
