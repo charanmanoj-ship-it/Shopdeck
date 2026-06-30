@@ -1,23 +1,21 @@
 -- =============================================================================
 -- Seller-level churn STATE model (one row per seller), evaluated "till date".
--- Status = Active / At risk / Churned, with churn split into confirmed vs abandoned.
+-- Status = Active / At risk / Churned (confirmed or abandoned).
 -- -----------------------------------------------------------------------------
--- CONFIRM these 4 assumptions (search for "CONFIRM"):
---   #1 QC completion  : type = 'qc'  AND disposition = 'qc_completed'
---   #2 running task    : completed_at IS NULL, excluding churn_seller_callback rows
---   #3 dormancy window : no activity in the last 21 days (till today)
---   #4 completion cols : go_live_date / gtg_date  (+ QC completed)
+-- Definitions (confirmed with stakeholder):
+--   QC override   : type = 'QC_type' AND disposition = 'QC COMPLETED AND OKAY'
+--                   -> seller is qualified; overrides any earlier drop signal.
+--   completion    : go_live_date / gtg_date  (CONFIRM if another col means "done")
+--   genuine activity : any task that is NOT a churn_seller_callback and NOT a
+--                   drop disposition. (A churn call doesn't mean the seller is alive.)
+--   dormant       : no genuine activity in the last 20 days (till today).
 --
--- Resolves:
---   69da417b  drop-out w/ no completion -> Churned (was wrongly blank: a neutral
---             same-day task used to count as "positive" - removed that rule).
---   6968df90  not_in_criteria BUT QC completed         -> Active  (QC overrides)
---   6968e334  not_in_criteria BUT QC completed         -> Active
---   6968d391  open churn callback, no running tasks,    -> Churned (abandoned)
---             not_in_criteria, no recent activity
---   6968e111  asked_to_drop + final callback, no        -> Churned (abandoned)
---             running tasks after (till date)
---   677d2156  asked_to_drop but still has running tasks -> At risk
+-- Status precedence:
+--   1. Active   - completed/qualified after the latest drop
+--   2. Churned  - confirmed: completed 'seller_wants_to_drop_out'
+--   3. Churned  - abandoned: soft drop / opened churn callback AND dormant
+--   4. At risk  - soft drop / opened churn callback but still recently active
+--   5. Active   - no drop signal at all
 -- =============================================================================
 
 WITH cohort_base AS (
@@ -47,14 +45,14 @@ seller_signals AS (
         MAX(IF(disposition = 'seller_wants_to_drop_out' AND completed_at IS NOT NULL,
                DATE(completed_at,'Asia/Kolkata'), NULL))                    AS dropout_completed_date,
 
-        -- soft drop only (the "at risk" / abandon-candidate signals)
+        -- soft drop only (at-risk / abandon candidate)
         MAX(IF(disposition IN ('asked_to_drop_the_lead','not_in_shopdeck_criteria',
                                'photoshoot_not_available'),
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
                NULL))                                                       AS last_soft_drop_date,
 
-        -- CONFIRM #1: QC completion overrides churn
-        MAX(IF(LOWER(type) = 'qc' AND LOWER(disposition) = 'qc_completed',
+        -- QC qualification (overrides churn)
+        MAX(IF(UPPER(type) = 'QC_TYPE' AND UPPER(disposition) = 'QC COMPLETED AND OKAY',
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
                NULL))                                                       AS qc_completed_date,
 
@@ -63,11 +61,12 @@ seller_signals AS (
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
                NULL))                                                       AS last_churn_callback_date,
 
-        -- CONFIRM #2: running/open operational task (churn callbacks excluded)
-        COUNTIF(completed_at IS NULL AND type != 'churn_seller_callback')   AS open_tasks,
-
-        -- last activity of any kind (for dormancy)
-        MAX(DATE(created_at,'Asia/Kolkata'))                                AS last_task_date,
+        -- last GENUINE activity: not a churn call, not a drop disposition (type IS checked)
+        MAX(IF(type != 'churn_seller_callback'
+                 AND (disposition IS NULL
+                      OR disposition NOT IN ('seller_wants_to_drop_out','asked_to_drop_the_lead',
+                                             'not_in_shopdeck_criteria','photoshoot_not_available')),
+               DATE(created_at,'Asia/Kolkata'), NULL))                      AS last_active_task_date,
 
         STRING_AGG(DISTINCT IF(disposition IN ('seller_wants_to_drop_out','asked_to_drop_the_lead',
                                                'not_in_shopdeck_criteria','photoshoot_not_available'),
@@ -92,17 +91,16 @@ seller_eval AS (
         s.last_soft_drop_date,
         s.qc_completed_date,
         s.last_churn_callback_date,
-        s.open_tasks,
-        s.last_task_date,
+        s.last_active_task_date,
         s.churn_reason,
 
-        -- positive/override = real completion or qualification (CONFIRM #4 + QC)
+        -- positive/override = real completion or QC qualification
         (SELECT MAX(d) FROM UNNEST([cb.go_live_date, cb.gtg_date, s.qc_completed_date]) AS d)
                                                     AS last_positive_date,
 
-        -- CONFIRM #2 & #3: dormant = no running task AND no recent activity (till date)
-        (COALESCE(s.open_tasks, 0) = 0
-         AND s.last_task_date < DATE_SUB(CURRENT_DATE('Asia/Kolkata'), INTERVAL 21 DAY))
+        -- dormant = no genuine activity in the last 20 days (till today)
+        (s.last_active_task_date IS NULL
+         OR s.last_active_task_date < DATE_SUB(CURRENT_DATE('Asia/Kolkata'), INTERVAL 20 DAY))
                                                     AS is_dormant
     FROM cohort_base cb
     LEFT JOIN seller_signals s USING (seller_id)
@@ -158,8 +156,7 @@ SELECT
     last_positive_date,
     qc_completed_date,
     last_churn_callback_date,
-    open_tasks,
-    last_task_date,
+    last_active_task_date,
     is_dormant,
 
     churn_date,
