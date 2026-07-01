@@ -33,14 +33,14 @@ A task disposition that signals the seller may leave:
 - `photoshoot_not_available`  ← soft drop
 
 ### QC passed = "completed the process"  *(overrides churn)*
-Matched (case-insensitive) on **either** value-pair:
-- `type = 'QC_type'`  AND `disposition = 'QC COMPLETED AND OKAY'`
-- `type = 'QC_Check'` AND `disposition = 'QC completed'`
+Matched (case-insensitive) on the **verified** value-pair:
+- `type = 'qc_check'` AND `disposition = 'qc_completed_and_okay'`
 
-> ⚠️ **OPEN ITEM:** these exact strings are unverified. Seller
-> `6954ed68df31d5c1ba061e32` has a QC-completed date that the query is **not**
-> picking up — likely because the real `type`/`disposition` text differs from the
-> two pairs above. Needs the raw `ob_tasks` rows to lock the exact wording.
+> ✅ **VERIFIED** against real `ob_tasks` rows for seller `6954ed68…`. Note: all
+> `type` / `disposition` values in this table are **lowercase `snake_case`** — the
+> earlier guesses (`QC_type` / `QC COMPLETED AND OKAY`) never matched, which is why
+> that seller's QC date wasn't picked up. If there are *other* passing QC
+> dispositions (e.g. a plain `qc_completed`), add them here.
 
 ### Completion / positive signal
 `last_positive_date` = the latest of: **QC passed date**, `go_live_date`,
@@ -61,6 +61,12 @@ such task's `created_at`.
 **open** and **not yet** concluded as `seller_wants_to_drop_out`.
 > **ASSUMPTION:** "open" = `completed_at IS NULL`. If open/closed is tracked by a
 > dedicated status column instead, that column should be used here.
+> **DATA CAVEAT:** in the sample rows, `completed_at` is *chained* — a task's
+> `completed_at` equals the next task's `created_at` (it's a state-transition log),
+> and some superseded rows keep `completed_at = NULL` even though they're stale
+> (e.g. duplicate `website_reconfig` `in_progress` rows). So `completed_at IS NULL`
+> can over-count "open". Needs a real `churn_seller_callback` example to confirm the
+> open-callback test doesn't over-trigger At-risk.
 
 ---
 
@@ -104,10 +110,11 @@ such task's `created_at`.
 
 ## 6. Open items to confirm
 
-1. **QC strings** — verify exact `type` / `disposition` text (blocking `6954ed68…`).
-2. **Open callback** — is `completed_at IS NULL` the right "still running" test, or is there a status column?
+1. ✅ **QC strings** — RESOLVED: `type='qc_check'`, `disposition='qc_completed_and_okay'`.
+2. **Open callback** — is `completed_at IS NULL` the right "still running" test? (See data caveat: `completed_at` is chained; may over-count open. Needs a churn-callback example.)
 3. **Dormancy window** — 20 days (we settled on 20/21).
 4. **Completion columns** — `go_live_date` + `gtg_date` kept as extra completion markers alongside QC pass.
+5. **Other vocabulary** — verify the exact strings for `seller_wants_to_drop_out`, `not_in_shopdeck_criteria`, `photoshoot_not_available`, and `churn_seller_callback` against the real distinct values (all lowercase snake_case). `asked_to_drop_the_lead` is confirmed present.
 
 ---
 
