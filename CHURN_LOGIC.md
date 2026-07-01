@@ -75,7 +75,10 @@ below are **verified** against the real `ob_tasks` vocabulary (all lowercase
 | 4 | **Paused** | `seller_wants_to_pause` (any task type) is the latest churn signal |
 | 5 | **At risk** | A drop/callback exists AND (a churn callback is recently in-flight OR the seller is still recently active) → savable |
 | 6 | **Churned** *(abandoned)* | A drop/callback exists, nothing running, seller is dormant (silent) |
-| 7 | **Active** | No churn signal at all (brand-new / mid-onboarding) |
+| 7 | **Dormant** | No explicit churn signal, but no genuine activity in ≥20 days (stalled / went silent) |
+| 8 | **Active** | Recent onboarding activity, no churn signal (brand-new / mid-onboarding) |
+
+**Dormant vs Active vs Churned(abandoned):** *Active* = progressing recently. *Dormant* = silent ≥20d but never flagged (no drop, no churn callback). *Churned (abandoned)* = silent **and** had a drop/callback signal.
 
 **Live account vs Active:** *Live account* = genuinely completed (QC pass / go-live).
 *Active* = no churn signal (new / mid-onboarding) or explicitly retained but not yet live.
@@ -104,6 +107,7 @@ Output flags: `is_live_account`, `is_paused`, `churn_flag`.
 | `677d2156…` | `asked_to_drop` + callback recently in-flight | **At risk** | `has_recent_inflight_cb` |
 | `6968e111…` | `asked_to_drop`, final callback closed, silent | **Churned** | abandoned |
 | `6968d391…` | callback opened but stale, no recent tasks | **Churned** | abandoned |
+| `69592bef…` | no drop / no callback ever, silent since 12-Mar | **Dormant** | `is_dormant` with no churn signal |
 
 ---
 
