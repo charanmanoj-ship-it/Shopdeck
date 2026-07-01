@@ -48,11 +48,13 @@ below are **verified** against the real `ob_tasks` vocabulary (all lowercase
 
 ## 3. Derived concepts
 
-- **`last_positive_date`** — latest of: `go_live_date`, `gtg_date`, QC-pass date, and
-  **retention** (`seller_wants_to_continue` / `seller_resumed`). A positive dated
-  on/after the latest drop rescues the seller to **Active**.
-- **Genuine activity** — any task that is NOT a `churn_seller_callback` and NOT a
-  drop disposition. `last_active_task_date` = latest such task.
+- **`completion_date`** — latest of `go_live_date` and QC-pass date. This is what
+  makes a **Live account** (`gtg_date` is *not* completion — it's mid-onboarding).
+- **Retention** — `seller_wants_to_continue` / `seller_resumed`. Rescues a seller
+  (who had an earlier drop) to **Active**, but does not make them Live.
+- **Genuine activity** — real onboarding tasks. EXCLUDES `churn_seller_callback`,
+  the generic `callback` (a customer ask, not progress), and drop dispositions.
+  `last_active_task_date` = latest such task.
 - **Dormant** — `is_dormant = TRUE` when no genuine activity in the last 20 days.
 - **Recently in-flight callback** — `has_recent_inflight_cb = TRUE` when a
   `churn_seller_callback` with an *unresolved* disposition (null / did-not-pick-up /
@@ -67,12 +69,17 @@ below are **verified** against the real `ob_tasks` vocabulary (all lowercase
 
 | # | Status | Condition |
 |---|--------|-----------|
-| 1 | **Active** | A positive/retention signal is dated on/after the latest drop and latest pause → retained / qualified |
-| 2 | **Churned** *(confirmed)* | `seller_wants_to_drop_out` is the latest churn signal |
-| 3 | **Paused** | `seller_wants_to_pause` (any task type) is the latest churn signal |
-| 4 | **At risk** | A drop/callback exists AND (a churn callback is recently in-flight OR the seller is still recently active) → savable |
-| 5 | **Churned** *(abandoned)* | A drop/callback exists, nothing running, seller is dormant (silent) |
-| 6 | **Active** | No drop/callback signal at all |
+| 1 | **Live account** | Completed/qualified — QC passed **or** went live — on/after the latest drop & pause |
+| 2 | **Active** | Explicitly retained (`continue` / `resumed`) on/after the latest drop & pause |
+| 3 | **Churned** *(confirmed)* | `seller_wants_to_drop_out` is the latest churn signal |
+| 4 | **Paused** | `seller_wants_to_pause` (any task type) is the latest churn signal |
+| 5 | **At risk** | A drop/callback exists AND (a churn callback is recently in-flight OR the seller is still recently active) → savable |
+| 6 | **Churned** *(abandoned)* | A drop/callback exists, nothing running, seller is dormant (silent) |
+| 7 | **Active** | No churn signal at all (brand-new / mid-onboarding) |
+
+**Live account vs Active:** *Live account* = genuinely completed (QC pass / go-live).
+*Active* = no churn signal (new / mid-onboarding) or explicitly retained but not yet live.
+Output flags: `is_live_account`, `is_paused`, `churn_flag`.
 
 `churn_flag = 1` only when `churn_status = 'Churned'`.
 
@@ -90,10 +97,10 @@ below are **verified** against the real `ob_tasks` vocabulary (all lowercase
 
 | Seller | Situation | Result | Driver |
 |--------|-----------|--------|--------|
-| `6954ed68…` | soft drop (Feb/Mar), then full onboarding + QC pass (Jun) | **Active** | QC pass dated after the drop |
-| `69cb7fb…` | churn callback → `seller_wants_to_continue` | **Active** | retention rescue |
+| `6954ed68…` | soft drop (Feb/Mar), then full onboarding + QC pass (Jun) | **Live account** | QC pass dated after the drop |
+| `69cb7fb…` | churn callback → `seller_wants_to_continue` | **Active** | retention rescue (not yet live) |
 | `69da417b…` | `seller_wants_to_drop_out`, no completion | **Churned** | confirmed drop-out |
-| `6968df90…`, `6968e334…` | `not_in_criteria` but QC passed | **Active** | QC override |
+| `6968df90…`, `6968e334…` | `not_in_criteria` but QC passed | **Live account** | QC completion overrides |
 | `677d2156…` | `asked_to_drop` + callback recently in-flight | **At risk** | `has_recent_inflight_cb` |
 | `6968e111…` | `asked_to_drop`, final callback closed, silent | **Churned** | abandoned |
 | `6968d391…` | callback opened but stale, no recent tasks | **Churned** | abandoned |
@@ -105,6 +112,8 @@ below are **verified** against the real `ob_tasks` vocabulary (all lowercase
 1. **`seller_wants_to_continue` / `seller_resumed` rescue to Active** (positive/retention).
 2. **`seller_wants_to_pause` (any task type) → its own `Paused` status** + `is_paused` column.
 3. **Churn callbacks are targeted, not routine** — opened only for non-responsive sellers (after N attempts) or when POC marks want-to-leave / not-in-criteria. So a `churn_seller_callback`'s existence is a valid churn-risk signal and is kept as a trigger.
+4. **Live account vs Active split** — completed/qualified (QC pass or go-live) = **Live account**; no churn signal / mid-onboarding = **Active**. `gtg_date` is NOT treated as completion.
+5. **Generic `callback` type = customer ask, not progress** — excluded from "genuine activity" (dormancy). Main onboarding tasks (`cagd`, `poc_intro`, `website_discussion`/`web_config`, `catalogue_config`, `meta_setup`, `fund_transfer`, …) count.
 
 ---
 
