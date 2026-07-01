@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Seller-level churn STATE model (one row per seller), evaluated "till date".
--- Status = Active / At risk / Churned (confirmed or abandoned).
+-- Status = Active / Paused / At risk / Churned (confirmed or abandoned).
 -- All type/disposition strings VERIFIED against ob_tasks vocabulary.
 -- -----------------------------------------------------------------------------
 -- Vocabulary (verified):
@@ -18,12 +18,13 @@
 --
 -- Status precedence:
 --   1. Active   - a positive signal (QC pass / go-live / gtg / seller_wants_to_continue /
---                 seller_resumed) is dated on/after the latest drop
---   2. Churned  - confirmed: seller_wants_to_drop_out exists (and not later rescued)
---   3. At risk  - drop/callback present AND (a churn callback is recently in-flight OR
+--                 seller_resumed) is dated on/after the latest drop and latest pause
+--   2. Churned  - confirmed: seller_wants_to_drop_out is the latest churn signal
+--   3. Paused   - seller_wants_to_pause (any type) is the latest churn signal
+--   4. At risk  - drop/callback present AND (a churn callback is recently in-flight OR
 --                 the seller is still recently active) => savable
---   4. Churned  - abandoned: drop/callback present, nothing running, dormant (silent)
---   5. Active   - no drop / callback signal at all
+--   5. Churned  - abandoned: drop/callback present, nothing running, dormant (silent)
+--   6. Active   - no drop / callback signal at all
 -- =============================================================================
 
 WITH cohort_base AS (
@@ -71,6 +72,11 @@ seller_signals AS (
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
                NULL))                                                       AS last_retained_date,
 
+        -- pause: seller_wants_to_pause on ANY task type -> its own "Paused" state
+        MAX(IF(disposition = 'seller_wants_to_pause',
+               COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
+               NULL))                                                       AS last_pause_date,
+
         -- any churn callback opened at all
         MAX(IF(type = 'churn_seller_callback',
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
@@ -81,8 +87,7 @@ seller_signals AS (
                    AND (disposition IS NULL
                         OR disposition IN ('seller_did_not_pick_up_the_call',
                                            'seller_wants_to_call_later',
-                                           'schedule_account_health_call',
-                                           'seller_wants_to_pause'))
+                                           'schedule_account_health_call'))
                    AND COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata'))
                        >= DATE_SUB(CURRENT_DATE('Asia/Kolkata'), INTERVAL 20 DAY))
                                                                             AS has_recent_inflight_cb,
@@ -117,6 +122,7 @@ seller_eval AS (
         s.last_soft_drop_date,
         s.qc_completed_date,
         s.last_retained_date,
+        s.last_pause_date,
         s.last_churn_callback_date,
         s.has_recent_inflight_cb,
         s.last_active_task_date,
@@ -141,16 +147,22 @@ seller_status AS (
         CASE
             -- 1. positive/retention is the latest signal -> Active
             WHEN last_positive_date IS NOT NULL
-                 AND (last_drop_date IS NULL OR last_positive_date >= last_drop_date)
+                 AND (last_drop_date  IS NULL OR last_positive_date >= last_drop_date)
+                 AND (last_pause_date IS NULL OR last_positive_date >= last_pause_date)
                 THEN 'Active'
-            -- 2. confirmed drop-out (not later rescued) -> churned
+            -- 2. confirmed drop-out is the latest churn signal -> churned
             WHEN dropout_date IS NOT NULL
+                 AND (last_pause_date IS NULL OR dropout_date >= last_pause_date)
                 THEN 'Churned'
-            -- 3. drop/callback present AND (recently in-flight callback OR still active) -> at risk
+            -- 3. seller_wants_to_pause is the latest churn signal -> paused
+            WHEN last_pause_date IS NOT NULL
+                 AND (last_drop_date IS NULL OR last_pause_date >= last_drop_date)
+                THEN 'Paused'
+            -- 4. drop/callback present AND (recently in-flight callback OR still active) -> at risk
             WHEN (last_soft_drop_date IS NOT NULL OR last_churn_callback_date IS NOT NULL)
                  AND (has_recent_inflight_cb OR NOT is_dormant)
                 THEN 'At risk'
-            -- 4. drop/callback present, nothing running, dormant (silent) -> churned (abandoned)
+            -- 5. drop/callback present, nothing running, dormant (silent) -> churned (abandoned)
             WHEN (last_soft_drop_date IS NOT NULL OR last_churn_callback_date IS NOT NULL)
                 THEN 'Churned'
             ELSE 'Active'
@@ -162,6 +174,7 @@ seller_final AS (
     SELECT
         *,
         IF(churn_status = 'Churned', 1, 0)          AS churn_flag,
+        IF(churn_status = 'Paused',  1, 0)          AS is_paused,
         IF(churn_status = 'Churned',
            COALESCE(dropout_date, last_soft_drop_date, last_churn_callback_date),
            NULL)                                    AS churn_date
@@ -178,6 +191,7 @@ SELECT
 
     churn_status,
     churn_flag,
+    is_paused,
     churn_reason,
 
     last_drop_date,
@@ -185,6 +199,7 @@ SELECT
     last_positive_date,
     qc_completed_date,
     last_retained_date,
+    last_pause_date,
     last_churn_callback_date,
     has_recent_inflight_cb,
     last_active_task_date,
