@@ -187,6 +187,7 @@ seller_final AS (
         IF(churn_status = 'Churned',      1, 0)     AS churn_flag,
         IF(churn_status = 'Paused',       1, 0)     AS is_paused,
         IF(churn_status = 'Live account', 1, 0)     AS is_live_account,
+        IF(churn_status = 'Dormant',      1, 0)     AS is_dormant_status,
         IF(churn_status = 'Churned',
            COALESCE(dropout_date, last_soft_drop_date, last_churn_callback_date),
            NULL)                                    AS churn_date
@@ -205,6 +206,7 @@ SELECT
     churn_flag,
     is_paused,
     is_live_account,
+    is_dormant_status,
     churn_reason,
 
     last_drop_date,
