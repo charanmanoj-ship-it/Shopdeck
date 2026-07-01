@@ -38,7 +38,7 @@ below are **verified** against the real `ob_tasks` vocabulary (all lowercase
 | `seller_wants_to_drop_out` | confirmed churn | **Churned** |
 | `seller_wants_to_continue` | staying | **Retention → rescues to Active** |
 | `seller_resumed` | came back | **Retention → rescues to Active** |
-| `seller_wants_to_pause` | paused | in-flight → **At risk** if recent |
+| `seller_wants_to_pause` | paused | **Paused** — its own status + `is_paused` column (matched on ANY task type) |
 | `` (null) | opened, unworked | in-flight → At risk if recent |
 | `seller_did_not_pick_up_the_call` | trying to reach | in-flight → At risk if recent |
 | `seller_wants_to_call_later` | in-flight | in-flight → At risk if recent |
@@ -67,11 +67,12 @@ below are **verified** against the real `ob_tasks` vocabulary (all lowercase
 
 | # | Status | Condition |
 |---|--------|-----------|
-| 1 | **Active** | A positive/retention signal is dated on/after the latest drop → retained / qualified |
-| 2 | **Churned** *(confirmed)* | `seller_wants_to_drop_out` exists and was not later rescued |
-| 3 | **At risk** | A drop/callback exists AND (a churn callback is recently in-flight OR the seller is still recently active) → savable |
-| 4 | **Churned** *(abandoned)* | A drop/callback exists, nothing running, seller is dormant (silent) |
-| 5 | **Active** | No drop/callback signal at all |
+| 1 | **Active** | A positive/retention signal is dated on/after the latest drop and latest pause → retained / qualified |
+| 2 | **Churned** *(confirmed)* | `seller_wants_to_drop_out` is the latest churn signal |
+| 3 | **Paused** | `seller_wants_to_pause` (any task type) is the latest churn signal |
+| 4 | **At risk** | A drop/callback exists AND (a churn callback is recently in-flight OR the seller is still recently active) → savable |
+| 5 | **Churned** *(abandoned)* | A drop/callback exists, nothing running, seller is dormant (silent) |
+| 6 | **Active** | No drop/callback signal at all |
 
 `churn_flag = 1` only when `churn_status = 'Churned'`.
 
@@ -99,11 +100,11 @@ below are **verified** against the real `ob_tasks` vocabulary (all lowercase
 
 ---
 
-## 7. Decisions applied on the new callback vocabulary (confirm if you disagree)
+## 7. Confirmed business decisions
 
-1. **`seller_wants_to_continue` / `seller_resumed` rescue to Active** (treated as positive/retention).
-2. **`seller_wants_to_pause`** is treated as an in-flight/at-risk signal (recent pause → At risk; long-silent → abandoned churn). If a pause should *always* stay At risk, tell me.
-3. **A churn callback with only `seller_did_not_pick_up_the_call` (no drop disposition)** still counts as a churn-risk signal. Given `seller_did_not_pick_up_the_call` has 13k+ rows, this can flag many sellers At-risk — say if you'd rather require an explicit drop disposition.
+1. **`seller_wants_to_continue` / `seller_resumed` rescue to Active** (positive/retention).
+2. **`seller_wants_to_pause` (any task type) → its own `Paused` status** + `is_paused` column.
+3. **Churn callbacks are targeted, not routine** — opened only for non-responsive sellers (after N attempts) or when POC marks want-to-leave / not-in-criteria. So a `churn_seller_callback`'s existence is a valid churn-risk signal and is kept as a trigger.
 
 ---
 
