@@ -1,23 +1,29 @@
 -- =============================================================================
 -- Seller-level churn STATE model (one row per seller), evaluated "till date".
 -- Status = Active / At risk / Churned (confirmed or abandoned).
+-- All type/disposition strings VERIFIED against ob_tasks vocabulary.
 -- -----------------------------------------------------------------------------
--- Definitions (confirmed with stakeholder):
---   QC passed     : type='qc_check' AND disposition='qc_completed_and_okay'
---                   (verified against ob_tasks); "completed the process";
---                   overrides any earlier drop signal.
---   completion    : QC passed (above) + go_live_date / gtg_date as extra markers
---   genuine activity : any task that is NOT a churn_seller_callback and NOT a
---                   drop disposition. (A churn call doesn't mean the seller is alive.)
---   dormant       : no genuine activity in the last 20 days (till today).
+-- Vocabulary (verified):
+--   Soft drop (any task type) : asked_to_drop_the_lead, not_in_shopdeck_criteria,
+--                               photoshoot_not_available
+--   Confirmed drop (any type) : seller_wants_to_drop_out
+--   QC passed                 : type='qc_check' AND disposition='qc_completed_and_okay'
+--   Retention (churn callback): seller_wants_to_continue, seller_resumed  -> rescue to Active
+--   In-flight callback        : churn_seller_callback with disposition NULL /
+--                               seller_did_not_pick_up_the_call / seller_wants_to_call_later /
+--                               schedule_account_health_call / seller_wants_to_pause
+--   Completion markers        : go_live_date / gtg_date (from cohort) + QC pass + retention
+--   Genuine activity          : any task that is NOT a churn_seller_callback and NOT a drop
+--   Dormant                   : no genuine activity in the last 20 days (till today)
 --
 -- Status precedence:
---   1. Active   - completed/qualified (QC pass / go-live) after the latest drop
---   2. Churned  - confirmed: completed 'seller_wants_to_drop_out'
---   3. At risk  - drop/callback present AND a churn_seller_callback is still RUNNING
---                 (not yet a drop-out), or seller still recently active => savable
+--   1. Active   - a positive signal (QC pass / go-live / gtg / seller_wants_to_continue /
+--                 seller_resumed) is dated on/after the latest drop
+--   2. Churned  - confirmed: seller_wants_to_drop_out exists (and not later rescued)
+--   3. At risk  - drop/callback present AND (a churn callback is recently in-flight OR
+--                 the seller is still recently active) => savable
 --   4. Churned  - abandoned: drop/callback present, nothing running, dormant (silent)
---   5. Active   - no drop signal at all
+--   5. Active   - no drop / callback signal at all
 -- =============================================================================
 
 WITH cohort_base AS (
@@ -37,15 +43,16 @@ seller_signals AS (
     SELECT
         seller_id,
 
-        -- latest of ANY drop disposition
+        -- latest of ANY drop disposition (soft + confirmed), across all task types
         MAX(IF(disposition IN ('seller_wants_to_drop_out','asked_to_drop_the_lead',
                                'not_in_shopdeck_criteria','photoshoot_not_available'),
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
                NULL))                                                       AS last_drop_date,
 
-        -- confirmed churn: completed "seller_wants_to_drop_out"
-        MAX(IF(disposition = 'seller_wants_to_drop_out' AND completed_at IS NOT NULL,
-               DATE(completed_at,'Asia/Kolkata'), NULL))                    AS dropout_completed_date,
+        -- confirmed churn: seller_wants_to_drop_out (any task type)
+        MAX(IF(disposition = 'seller_wants_to_drop_out',
+               COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
+               NULL))                                                       AS dropout_date,
 
         -- soft drop only (at-risk / abandon candidate)
         MAX(IF(disposition IN ('asked_to_drop_the_lead','not_in_shopdeck_criteria',
@@ -53,31 +60,39 @@ seller_signals AS (
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
                NULL))                                                       AS last_soft_drop_date,
 
-        -- QC passed = "completed the process" (overrides churn).
-        -- Verified against real ob_tasks data: values are lowercase snake_case.
+        -- QC passed = "completed the process" (verified strings, lowercase snake_case)
         MAX(IF(LOWER(type) = 'qc_check' AND LOWER(disposition) = 'qc_completed_and_okay',
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
                NULL))                                                       AS qc_completed_date,
 
-        -- a churn callback was opened at all (regardless of disposition)
+        -- retention: seller explicitly stayed on a churn callback -> rescues to Active
+        MAX(IF(type = 'churn_seller_callback'
+                 AND disposition IN ('seller_wants_to_continue','seller_resumed'),
+               COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
+               NULL))                                                       AS last_retained_date,
+
+        -- any churn callback opened at all
         MAX(IF(type = 'churn_seller_callback',
                COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata')),
                NULL))                                                       AS last_churn_callback_date,
 
-        -- last GENUINE activity: not a churn call, not a drop disposition (type IS checked)
+        -- a churn callback that is RECENTLY in-flight (unresolved) => actively being worked
+        LOGICAL_OR(type = 'churn_seller_callback'
+                   AND (disposition IS NULL
+                        OR disposition IN ('seller_did_not_pick_up_the_call',
+                                           'seller_wants_to_call_later',
+                                           'schedule_account_health_call',
+                                           'seller_wants_to_pause'))
+                   AND COALESCE(DATE(completed_at,'Asia/Kolkata'), DATE(created_at,'Asia/Kolkata'))
+                       >= DATE_SUB(CURRENT_DATE('Asia/Kolkata'), INTERVAL 20 DAY))
+                                                                            AS has_recent_inflight_cb,
+
+        -- last GENUINE activity: not a churn call, not a drop disposition
         MAX(IF(type != 'churn_seller_callback'
                  AND (disposition IS NULL
                       OR disposition NOT IN ('seller_wants_to_drop_out','asked_to_drop_the_lead',
                                              'not_in_shopdeck_criteria','photoshoot_not_available')),
                DATE(created_at,'Asia/Kolkata'), NULL))                      AS last_active_task_date,
-
-        -- a churn_seller_callback that is still RUNNING (open) and NOT yet concluded as a
-        -- drop-out -> churn investigation in-flight => At risk, not abandoned.
-        -- ASSUMPTION: "open" = completed_at IS NULL (swap for a status column if you have one).
-        LOGICAL_OR(type = 'churn_seller_callback'
-                   AND completed_at IS NULL
-                   AND (disposition IS NULL OR disposition != 'seller_wants_to_drop_out'))
-                                                                            AS has_open_churn_callback,
 
         STRING_AGG(DISTINCT IF(disposition IN ('seller_wants_to_drop_out','asked_to_drop_the_lead',
                                                'not_in_shopdeck_criteria','photoshoot_not_available'),
@@ -98,16 +113,18 @@ seller_eval AS (
         cb.go_live_date,
 
         s.last_drop_date,
-        s.dropout_completed_date,
+        s.dropout_date,
         s.last_soft_drop_date,
         s.qc_completed_date,
+        s.last_retained_date,
         s.last_churn_callback_date,
-        s.has_open_churn_callback,
+        s.has_recent_inflight_cb,
         s.last_active_task_date,
         s.churn_reason,
 
-        -- positive/override = real completion or QC qualification
-        (SELECT MAX(d) FROM UNNEST([cb.go_live_date, cb.gtg_date, s.qc_completed_date]) AS d)
+        -- positive = completion (QC/go-live/gtg) or explicit retention (continue/resumed)
+        (SELECT MAX(d) FROM UNNEST([cb.go_live_date, cb.gtg_date,
+                                    s.qc_completed_date, s.last_retained_date]) AS d)
                                                     AS last_positive_date,
 
         -- dormant = no genuine activity in the last 20 days (till today)
@@ -122,20 +139,18 @@ seller_status AS (
     SELECT
         *,
         CASE
-            -- 1. completed/qualified after the latest drop  -> retained
+            -- 1. positive/retention is the latest signal -> Active
             WHEN last_positive_date IS NOT NULL
-                 AND (last_drop_date           IS NULL OR last_positive_date >= last_drop_date)
-                 AND (last_churn_callback_date IS NULL OR last_positive_date >= last_churn_callback_date)
+                 AND (last_drop_date IS NULL OR last_positive_date >= last_drop_date)
                 THEN 'Active'
-            -- 2. confirmed drop-out  -> churned
-            WHEN dropout_completed_date IS NOT NULL
+            -- 2. confirmed drop-out (not later rescued) -> churned
+            WHEN dropout_date IS NOT NULL
                 THEN 'Churned'
-            -- 3. drop/callback present AND a churn callback is still RUNNING (not yet a
-            --    drop-out), or the seller is still recently active -> at risk (savable)
+            -- 3. drop/callback present AND (recently in-flight callback OR still active) -> at risk
             WHEN (last_soft_drop_date IS NOT NULL OR last_churn_callback_date IS NOT NULL)
-                 AND (has_open_churn_callback OR NOT is_dormant)
+                 AND (has_recent_inflight_cb OR NOT is_dormant)
                 THEN 'At risk'
-            -- 4. drop/callback present, nothing running, gone silent (dormant) -> churned (abandoned)
+            -- 4. drop/callback present, nothing running, dormant (silent) -> churned (abandoned)
             WHEN (last_soft_drop_date IS NOT NULL OR last_churn_callback_date IS NOT NULL)
                 THEN 'Churned'
             ELSE 'Active'
@@ -148,7 +163,7 @@ seller_final AS (
         *,
         IF(churn_status = 'Churned', 1, 0)          AS churn_flag,
         IF(churn_status = 'Churned',
-           COALESCE(dropout_completed_date, last_soft_drop_date, last_churn_callback_date),
+           COALESCE(dropout_date, last_soft_drop_date, last_churn_callback_date),
            NULL)                                    AS churn_date
     FROM seller_status
 )
@@ -166,10 +181,12 @@ SELECT
     churn_reason,
 
     last_drop_date,
+    dropout_date,
     last_positive_date,
     qc_completed_date,
+    last_retained_date,
     last_churn_callback_date,
-    has_open_churn_callback,
+    has_recent_inflight_cb,
     last_active_task_date,
     is_dormant,
 
