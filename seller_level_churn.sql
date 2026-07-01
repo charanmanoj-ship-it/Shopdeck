@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Seller-level churn STATE model (one row per seller), evaluated "till date".
--- Status = Live account / Active / Paused / At risk / Churned (confirmed|abandoned).
+-- Status = Live account / Active / Dormant / Paused / At risk / Churned (confirmed|abandoned).
 -- All type/disposition strings VERIFIED against ob_tasks vocabulary.
 -- -----------------------------------------------------------------------------
 -- Vocabulary (verified):
@@ -25,7 +25,8 @@
 --   4. Paused       - seller_wants_to_pause is the latest churn signal
 --   5. At risk      - drop/callback present AND (recent in-flight callback OR still active)
 --   6. Churned      - abandoned: drop/callback present, nothing running, dormant
---   7. Active       - no churn signal at all (brand-new / mid-onboarding)
+--   7. Dormant      - no explicit churn signal, but gone silent >= 20 days (stalled)
+--   8. Active       - recent onboarding activity, no churn signal (brand-new / mid-onboarding)
 -- =============================================================================
 
 WITH cohort_base AS (
@@ -171,7 +172,10 @@ seller_status AS (
             -- 6. drop/callback present, nothing running, dormant (silent) -> Churned (abandoned)
             WHEN (last_soft_drop_date IS NOT NULL OR last_churn_callback_date IS NOT NULL)
                 THEN 'Churned'
-            -- 7. no churn signal at all -> Active (brand-new / mid-onboarding)
+            -- 7. no explicit churn signal, but gone silent >= 20 days -> Dormant (stalled)
+            WHEN is_dormant
+                THEN 'Dormant'
+            -- 8. recent onboarding activity, no churn signal -> Active (brand-new / mid-onboarding)
             ELSE 'Active'
         END                                         AS churn_status
     FROM seller_eval
