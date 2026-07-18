@@ -1,0 +1,238 @@
+<title>April Cohort — Connectivity → GTG</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --ground: #FAFAF7;
+    --surface: #ffffff;
+    --surface-2: #f4f4ef;
+    --ink: #1a1f2b;
+    --ink-2: #4a5262;
+    --ink-3: #7c8494;
+    --navy: #1F3864;
+    --navy-soft: #3a5891;
+    --navy-track: #e7ebf3;
+    --crit: #B23A48;
+    --crit-soft: #e9d3d6;
+    --line: #e6e6df;
+    --good: #2f6b4f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #14181f;
+      --surface: #1b212b;
+      --surface-2: #222a36;
+      --ink: #e8eaed;
+      --ink-2: #aab2c0;
+      --ink-3: #7a8393;
+      --navy: #7ba3e0;
+      --navy-soft: #5f83bd;
+      --navy-track: #2a3342;
+      --crit: #e6717f;
+      --crit-soft: #3a2a2e;
+      --line: #2c3542;
+      --good: #6fca9f;
+    }
+  }
+  :root[data-theme="light"] {
+    --ground:#FAFAF7;--surface:#fff;--surface-2:#f4f4ef;--ink:#1a1f2b;--ink-2:#4a5262;--ink-3:#7c8494;
+    --navy:#1F3864;--navy-soft:#3a5891;--navy-track:#e7ebf3;--crit:#B23A48;--crit-soft:#e9d3d6;--line:#e6e6df;--good:#2f6b4f;
+  }
+  :root[data-theme="dark"] {
+    --ground:#14181f;--surface:#1b212b;--surface-2:#222a36;--ink:#e8eaed;--ink-2:#aab2c0;--ink-3:#7a8393;
+    --navy:#7ba3e0;--navy-soft:#5f83bd;--navy-track:#2a3342;--crit:#e6717f;--crit-soft:#3a2a2e;--line:#2c3542;--good:#6fca9f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55; -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+  .wrap { max-width: 840px; margin: 0 auto; padding: clamp(28px, 5vw, 64px) clamp(18px, 4vw, 40px); }
+  .eyebrow {
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--navy); font-weight: 650; margin: 0 0 10px;
+  }
+  h1 {
+    font-size: clamp(26px, 4.5vw, 38px); line-height: 1.1; margin: 0 0 12px;
+    letter-spacing: -0.02em; text-wrap: balance; font-weight: 720;
+  }
+  .lede { font-size: 17px; color: var(--ink-2); margin: 0 0 6px; max-width: 62ch; }
+  .meta { font-size: 13px; color: var(--ink-3); margin-top: 14px; font-family: ui-monospace, "SFMono-Regular", "JetBrains Mono", monospace; }
+  hr.rule { border: 0; border-top: 1px solid var(--line); margin: 34px 0; }
+  h2 {
+    font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+    font-weight: 650; margin: 0 0 18px;
+  }
+  /* KPI row */
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 16px; }
+  .kpi .n { font-size: clamp(28px, 5vw, 36px); font-weight: 720; letter-spacing: -0.02em; line-height: 1; }
+  .kpi .l { font-size: 12.5px; color: var(--ink-3); margin-top: 8px; }
+  .kpi .s { font-size: 12px; color: var(--ink-2); margin-top: 4px; }
+  /* reconciliation callout */
+  .callout {
+    background: var(--surface-2); border: 1px solid var(--line); border-left: 3px solid var(--navy);
+    border-radius: 10px; padding: 18px 20px; margin-top: 4px;
+  }
+  .callout p { margin: 0; font-size: 15px; color: var(--ink-2); }
+  .callout strong { color: var(--ink); }
+  /* bar chart */
+  .chart { display: flex; flex-direction: column; gap: 9px; }
+  .row { display: grid; grid-template-columns: 128px 1fr 46px; align-items: center; gap: 12px; }
+  .row .cat { font-size: 13px; color: var(--ink-2); text-align: right; }
+  .row .cat b { color: var(--ink); font-weight: 600; }
+  .row .cat span { display: block; font-size: 11px; color: var(--ink-3); }
+  .track { background: var(--navy-track); border-radius: 5px; height: 22px; position: relative; overflow: hidden; }
+  .bar { height: 100%; background: var(--navy); border-radius: 5px; min-width: 3px; }
+  .bar.crit { background: var(--crit); }
+  .row .val { font-size: 13.5px; font-weight: 650; text-align: right; }
+  .row.is-crit .val { color: var(--crit); }
+  .axis { grid-column: 2; display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+  .band { grid-column: 1 / -1; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin: 8px 0 2px; }
+  /* table */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .tbl th, .tbl td { text-align: right; padding: 11px 12px; border-bottom: 1px solid var(--line); }
+  .tbl th:first-child, .tbl td:first-child { text-align: left; }
+  .tbl thead th { font-size: 12px; color: var(--ink-3); font-weight: 600; letter-spacing: .02em; }
+  .tbl tbody tr.total td { font-style: italic; color: var(--ink-2); }
+  .tbl .pct { font-weight: 700; }
+  .tbl .up { color: var(--good); }
+  /* inferences */
+  .findings { display: flex; flex-direction: column; gap: 16px; counter-reset: f; }
+  .finding { display: grid; grid-template-columns: 26px 1fr; gap: 14px; }
+  .finding .num {
+    counter-increment: f; font-family: ui-monospace, monospace; font-size: 13px; font-weight: 700;
+    color: var(--navy); padding-top: 2px;
+  }
+  .finding .num::before { content: counter(f, decimal-leading-zero); }
+  .finding h3 { margin: 0 0 3px; font-size: 15.5px; font-weight: 650; }
+  .finding p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+  .finding p .hl { color: var(--ink); font-weight: 600; }
+  .foot { margin-top: 38px; font-size: 12px; color: var(--ink-3); font-family: ui-monospace, monospace; line-height: 1.7; }
+  @media (max-width: 560px) {
+    .kpis { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 96px 1fr 42px; gap: 8px; }
+    .row .cat span { display: none; }
+  }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">Onboarding · Top-of-funnel</p>
+  <h1>Connectivity → GTG: the April sales cohort</h1>
+  <p class="lede">How fast onboarding reached each seller, and whether it predicts Green-To-Go. A fully-mature cohort, so "reached GTG" is a near-final number — not an artifact of youth.</p>
+  <p class="meta">cohort: tickets created 1–30 Apr 2026 · grain: seller · connect = first outbound CONNECTED Exotel call · n = 1,656</p>
+
+  <hr class="rule">
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="n">1,656</div>
+      <div class="l">Sellers in cohort</div>
+      <div class="s">seller-level, earliest ticket</div>
+    </div>
+    <div class="kpi">
+      <div class="n">91.7%</div>
+      <div class="l">Connected within 3 days</div>
+      <div class="s">80.6% within a single day</div>
+    </div>
+    <div class="kpi">
+      <div class="n">75.5%</div>
+      <div class="l">Overall reached GTG</div>
+      <div class="s">77.6% among connected sellers</div>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <h2>Why the number is "78%"</h2>
+  <div class="callout">
+    <p>The org's headline <strong>April GTG ≈ 78%</strong> is the <strong>connected cohort</strong>: sellers reached within 3 days convert at <strong>77.6%</strong> (day-0 arrivals at 78.8%). The blended <strong>75.5%</strong> is lower only because it carries the small unreachable tail — the ~8% who connected late or never, converting near 50%. Both are right; they differ only in denominator. Quote 78% and you are quoting the <em>reachable</em> seller.</p>
+  </div>
+
+  <hr class="rule">
+
+  <h2>GTG rate by how fast we connected</h2>
+  <div class="chart">
+    <div class="band">Connected promptly — flat ~75–79%</div>
+    <div class="row">
+      <div class="cat"><b>Day 0</b><span>915 · 55.3%</span></div>
+      <div class="track"><div class="bar" style="width:78.8%"></div></div>
+      <div class="val">78.8%</div>
+    </div>
+    <div class="row">
+      <div class="cat"><b>Day 1</b><span>419 · 25.3%</span></div>
+      <div class="track"><div class="bar" style="width:76.6%"></div></div>
+      <div class="val">76.6%</div>
+    </div>
+    <div class="row">
+      <div class="cat"><b>Day 2</b><span>148 · 8.9%</span></div>
+      <div class="track"><div class="bar" style="width:75.0%"></div></div>
+      <div class="val">75.0%</div>
+    </div>
+    <div class="row">
+      <div class="cat"><b>Day 3</b><span>37 · 2.2%</span></div>
+      <div class="track"><div class="bar" style="width:67.6%"></div></div>
+      <div class="val">67.6%</div>
+    </div>
+    <div class="band">The cliff — late or unreachable</div>
+    <div class="row">
+      <div class="cat"><b>After 3 days</b><span>109 · 6.6%</span></div>
+      <div class="track"><div class="bar" style="width:58.7%"></div></div>
+      <div class="val">58.7%</div>
+    </div>
+    <div class="row is-crit">
+      <div class="cat"><b>Never connected</b><span>26 · RNR</span></div>
+      <div class="track"><div class="bar crit" style="width:26.9%"></div></div>
+      <div class="val">26.9%</div>
+    </div>
+    <div class="axis"><span>0%</span><span>GTG rate</span><span>100%</span></div>
+  </div>
+
+  <hr class="rule">
+
+  <h2>Connected vs not — the headline split</h2>
+  <table class="tbl">
+    <thead>
+      <tr><th>Group</th><th>Sellers</th><th>Reached GTG</th><th>GTG %</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Connected 0–3 days</td><td>1,519</td><td>1,178</td><td class="pct">77.6%</td></tr>
+      <tr><td>Not connected in 3 days</td><td>137</td><td>72</td><td class="pct">52.6%</td></tr>
+      <tr class="total"><td>Overall</td><td>1,656</td><td>1,250</td><td class="pct">75.5%</td></tr>
+    </tbody>
+  </table>
+  <p class="lede" style="font-size:14px;margin-top:14px;">+25 points, <strong>1.48×</strong> — real, but far gentler than the Jul 2–8 window's 2.82×. That gap <em>is</em> the insight, below.</p>
+
+  <hr class="rule">
+
+  <h2>What the cohort is telling us</h2>
+  <div class="findings">
+    <div class="finding"><div class="num"></div><div>
+      <h3>Connectivity was a solved problem in April</h3>
+      <p><span class="hl">91.7% connected within 3 days, 80.6% within a single day.</span> The calling operation was firing on all cylinders — a different regime from July's ~60%.</p>
+    </div></div>
+    <div class="finding"><div class="num"></div><div>
+      <h3>Within 3 days, speed barely matters — the cliff is <em>after</em> day 3</h3>
+      <p>Day 0→3 is nearly flat (78.8 → 67.6%). The real drop is <span class="hl">connect-after-3-days (58.7%)</span> and RNR (26.9%). The lever isn't "d0 vs d1" — it's "don't let anyone slip past day 3 or go dark."</p>
+    </div></div>
+    <div class="finding"><div class="num"></div><div>
+      <h3>RNR is the loss pocket — small but brutal</h3>
+      <p>Just 26 sellers, but they convert at <span class="hl">27%, a third of the cohort rate.</span> Dialed and ghosted — active disengagement, not an ops gap. This is where the recoverable-vs-lost question lives.</p>
+    </div></div>
+    <div class="finding"><div class="num"></div><div>
+      <h3>First touch lands where the funnel says it should</h3>
+      <p><span class="hl">94% of first connects happen on the CAGD (doc-collection) task</span> — the funnel's true entry point. Zero inbound calls: every connect is proactive outbound reach.</p>
+    </div></div>
+    <div class="finding"><div class="num"></div><div>
+      <h3>The value of connectivity depends on the regime</h3>
+      <p>April is saturated (92%), so pushing connectivity harder has little headroom — GTG is decided <span class="hl">further down the funnel.</span> July (60%) has real room, so it's a live lever there. <em>Caveat: July's steeper 2.82× is partly immaturity — a clean comparison needs GTG pinned to the same fixed horizon on both cohorts.</em></p>
+    </div></div>
+  </div>
+
+  <p class="foot">
+    source: blitzscale-prod-project.nushop · ob_tickets × ob_tasks(gtg) × exotel_calls · seller-level, dedup on earliest ticket<br>
+    GTG = gtg task status='completed' (ever). Cohort mature as of 18 Jul 2026 → no maturity gating required.<br>
+    blind spot: connects outside Exotel (WhatsApp / personal phone) are invisible — measured connectivity is a floor.
+  </p>
+</div>
