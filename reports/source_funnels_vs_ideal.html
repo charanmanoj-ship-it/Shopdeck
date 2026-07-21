@@ -1,0 +1,115 @@
+<title>Source Funnels vs Ideal — Apr–Jun</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--ground:#FAFAF7;--surface:#fff;--surface2:#f3f3ee;--ink:#1a1f2b;--ink2:#4a5262;--ink3:#818a99;--navy:#1F3864;--track:#e8ebf2;--ideal:#C7962B;--good:#2f6b4f;--warn:#C77D2B;--crit:#B23A48;--line:#e6e6df}
+@media(prefers-color-scheme:dark){:root{--ground:#14181f;--surface:#1b212b;--surface2:#222a36;--ink:#e8eaed;--ink2:#aab2c0;--ink3:#7a8393;--navy:#7ba3e0;--track:#2a3342;--ideal:#E0B65C;--good:#6fca9f;--warn:#e0a760;--crit:#e6717f;--line:#2c3542}}
+:root[data-theme=light]{--ground:#FAFAF7;--surface:#fff;--surface2:#f3f3ee;--ink:#1a1f2b;--ink2:#4a5262;--ink3:#818a99;--navy:#1F3864;--track:#e8ebf2;--ideal:#C7962B;--good:#2f6b4f;--warn:#C77D2B;--crit:#B23A48;--line:#e6e6df}
+:root[data-theme=dark]{--ground:#14181f;--surface:#1b212b;--surface2:#222a36;--ink:#e8eaed;--ink2:#aab2c0;--ink3:#7a8393;--navy:#7ba3e0;--track:#2a3342;--ideal:#E0B65C;--good:#6fca9f;--warn:#e0a760;--crit:#e6717f;--line:#2c3542}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;line-height:1.5}
+.wrap{max-width:960px;margin:0 auto;padding:clamp(22px,4vw,44px) clamp(14px,4vw,34px)}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);font-weight:650;margin:0 0 8px}
+h1{font-size:clamp(22px,4vw,32px);letter-spacing:-.02em;margin:0 0 8px;text-wrap:balance}
+.sub{color:var(--ink2);font-size:14.5px;margin:0 0 20px}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;margin-bottom:18px;padding:15px 17px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+label.lb{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;font-weight:600}
+select{font:inherit;font-size:15px;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink);min-width:150px;cursor:pointer}
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.toggle button{font:inherit;font-size:13.5px;font-weight:600;padding:7px 13px;border:0;background:var(--surface2);color:var(--ink2);cursor:pointer}
+.toggle button.on{background:var(--navy);color:#fff}
+.warn-banner{background:var(--surface2);border-left:3px solid var(--warn);border-radius:8px;padding:9px 14px;font-size:12.5px;color:var(--ink2);margin-bottom:16px;display:none}
+.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:17px 19px}
+.card h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);font-weight:650;margin:0 0 14px}
+.kpis{display:flex;gap:10px;margin-bottom:16px}
+.kpi{flex:1;background:var(--surface2);border-radius:9px;padding:11px 12px}
+.kpi .n{font-size:22px;font-weight:720;letter-spacing:-.02em;line-height:1}
+.kpi .l{font-size:11px;color:var(--ink3);margin-top:5px}.kpi .d{font-size:11px;font-weight:600;margin-top:2px}
+.up{color:var(--good)}.dn{color:var(--crit)}
+.row{display:grid;grid-template-columns:74px 1fr 84px;align-items:center;gap:9px;margin-bottom:7px}
+.row .cat{font-size:12.5px;color:var(--ink2);text-align:right}
+.track{position:relative;background:var(--track);border-radius:5px;height:22px}
+.bar{height:100%;background:var(--navy);border-radius:5px;min-width:2px;transition:width .3s}
+.ideal{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ideal)}
+.ideal::after{content:'';position:absolute;top:-3px;left:-3px;width:7px;height:7px;border-radius:50%;background:var(--ideal)}
+.val{font-size:12px;text-align:right}.val b{font-weight:700}.val .dl{font-size:11px;font-weight:700}
+.lb-row{display:grid;grid-template-columns:1fr 52px 52px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.lb-row.hd{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+.lb-row .s{display:flex;align-items:center;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.lb-row .v{text-align:right;font-weight:600}
+.chip{font-size:10px;padding:1px 6px;border-radius:20px;font-weight:700}
+.legend{font-size:11.5px;color:var(--ink3);margin-top:10px;display:flex;gap:14px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.note{font-size:12px;color:var(--ink3);margin-top:16px;line-height:1.6}
+</style>
+<div class="wrap">
+  <p class="eyebrow">Onboarding · Apr–Jun 2026 · funnel vs 7-day-ideal (75% target)</p>
+  <h1>Source funnels vs ideal</h1>
+  <p class="sub">Full funnel (Sales→CAGD→GTG→POC→WD→META→Funds→A2H) by lead source, at each horizon. Bars = actual, gold dot = ideal. A2H = qc_check.</p>
+  <div class="controls">
+    <div><label class="lb">Month</label><select id="mon"></select></div>
+    <div><label class="lb">Source</label><select id="src"></select></div>
+    <div><label class="lb">Horizon</label><div class="toggle" id="hz"></div></div>
+  </div>
+  <div class="warn-banner" id="warn"></div>
+  <div class="grid">
+    <div class="card">
+      <h2 id="ftitle">Funnel</h2>
+      <div class="kpis" id="kpis"></div>
+      <div id="funnel"></div>
+      <div class="legend"><span><i class="dot" style="background:var(--navy)"></i>actual</span><span><i class="dot" style="background:var(--ideal)"></i>ideal</span></div>
+    </div>
+    <div class="card">
+      <h2 id="lbtitle">Source leaderboard</h2>
+      <div id="board"></div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--good)"></i>≥ ideal</span>
+        <span><i class="dot" style="background:var(--warn)"></i>within 10pt</span>
+        <span><i class="dot" style="background:var(--crit)"></i>&gt;10pt below</span>
+      </div>
+    </div>
+  </div>
+  <div class="note" id="note"></div>
+</div>
+<script>
+const D={"April": {"All": {"n": 1656, "stages": {"CAGD": [50.1, 54.8, 62.1, 69.8, 74.4, 76.3], "GTG": [49.5, 54.1, 61.5, 69.3, 73.8, 75.7], "POC_intro": [45.8, 52.4, 60.4, 68.3, 72.8, 74.6], "WD": [24.6, 31.8, 44.5, 56.8, 63.9, 66.4], "META": [22.9, 30.0, 42.4, 55.1, 62.9, 65.1], "Funds": [22.6, 29.6, 42.0, 54.8, 62.6, 64.4], "A2H": [22.4, 29.4, 41.9, 54.7, 62.2, 64.1]}}, "New Perf": {"n": 797, "stages": {"CAGD": [54.8, 59.2, 67.8, 75.5, 80.8, 81.9], "GTG": [54.7, 58.7, 67.5, 75.4, 80.6, 81.7], "POC_intro": [50.3, 56.6, 65.6, 73.9, 79.3, 80.2], "WD": [27.7, 35.5, 49.3, 62.6, 70.3, 72.4], "META": [26.0, 33.6, 47.1, 60.6, 69.1, 71.3], "Funds": [26.0, 33.5, 46.8, 60.6, 68.8, 70.5], "A2H": [26.0, 33.4, 46.9, 60.7, 68.8, 70.4]}}, "Old Perf": {"n": 320, "stages": {"CAGD": [49.1, 55.0, 60.9, 68.1, 72.8, 75.0], "GTG": [47.5, 53.8, 60.0, 67.5, 72.2, 74.4], "POC_intro": [43.1, 52.2, 60.3, 67.8, 72.5, 74.4], "WD": [20.9, 27.8, 42.8, 55.0, 62.5, 64.7], "META": [18.4, 25.0, 39.7, 53.8, 61.9, 63.7], "Funds": [18.1, 24.7, 40.0, 53.8, 61.9, 63.7], "A2H": [17.5, 24.4, 39.1, 52.8, 60.6, 62.5]}}, "Channel Partner": {"n": 208, "stages": {"CAGD": [56.2, 61.1, 68.3, 79.3, 85.1, 88.0], "GTG": [55.3, 60.1, 66.8, 77.9, 83.7, 86.5], "POC_intro": [51.9, 58.7, 65.9, 76.9, 81.7, 85.1], "WD": [31.7, 38.9, 49.5, 63.5, 73.1, 76.0], "META": [31.2, 38.5, 49.0, 62.0, 72.1, 74.0], "Funds": [29.3, 36.5, 47.1, 60.6, 71.2, 73.6], "A2H": [29.3, 36.5, 47.6, 61.1, 71.2, 74.0]}}, "FOS": {"n": 109, "stages": {"CAGD": [51.4, 56.9, 60.6, 69.7, 72.5, 75.2], "GTG": [50.5, 56.0, 59.6, 68.8, 71.6, 74.3], "POC_intro": [47.7, 53.2, 59.6, 67.9, 70.6, 73.4], "WD": [25.7, 34.9, 45.0, 57.8, 63.3, 66.1], "META": [22.0, 30.3, 42.2, 54.1, 60.6, 63.3], "Funds": [22.0, 31.2, 42.2, 53.2, 60.6, 63.3], "A2H": [22.0, 31.2, 42.2, 54.1, 59.6, 62.4]}}, "Others": {"n": 164, "stages": {"CAGD": [26.8, 29.3, 33.5, 37.2, 39.0, 40.9], "GTG": [25.6, 28.0, 32.3, 36.0, 37.2, 39.0], "POC_intro": [25.6, 28.7, 32.3, 35.4, 37.2, 39.0], "WD": [9.1, 14.0, 23.2, 28.7, 30.5, 32.3], "META": [9.8, 14.0, 22.6, 28.7, 31.1, 32.3], "Funds": [9.8, 14.0, 22.0, 28.0, 30.5, 31.1], "A2H": [9.8, 14.0, 22.6, 28.7, 31.1, 31.7]}}, "Re-Activation": {"n": 1, "stages": {"CAGD": [0.0, 0.0, 0.0, 0.0, 0.0, 100.0], "GTG": [0.0, 0.0, 0.0, 0.0, 0.0, 100.0], "POC_intro": [0.0, 0.0, 0.0, 0.0, 0.0, 100.0], "WD": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "META": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "Funds": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "A2H": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}, "#N/A": {"n": 57, "stages": {"CAGD": [33.3, 40.4, 52.6, 59.6, 61.4, 66.7], "GTG": [35.1, 42.1, 54.4, 61.4, 63.2, 68.4], "POC_intro": [31.6, 40.4, 52.6, 57.9, 59.6, 64.9], "WD": [19.3, 22.8, 29.8, 42.1, 49.1, 56.1], "META": [15.8, 21.1, 26.3, 38.6, 45.6, 52.6], "Funds": [15.8, 21.1, 26.3, 38.6, 45.6, 49.1], "A2H": [12.3, 17.5, 22.8, 35.1, 42.1, 47.4]}}}, "May": {"All": {"n": 1832, "stages": {"CAGD": [40.8, 45.7, 54.5, 65.3, 70.1, 70.5], "GTG": [40.7, 45.6, 54.3, 65.0, 69.6, 69.9], "POC_intro": [37.1, 42.8, 52.6, 63.4, 67.8, 68.0], "WD": [24.5, 30.6, 40.6, 52.3, 59.1, 59.4], "META": [23.7, 29.5, 39.7, 50.8, 57.2, 57.5], "Funds": [23.4, 29.1, 39.2, 50.2, 55.9, 56.3], "A2H": [23.2, 29.2, 39.2, 50.2, 55.8, 56.1]}}, "New Perf": {"n": 1113, "stages": {"CAGD": [46.2, 51.5, 62.2, 74.4, 80.0, 80.3], "GTG": [45.9, 51.3, 61.8, 73.9, 79.2, 79.4], "POC_intro": [41.2, 48.2, 59.7, 72.1, 77.2, 77.4], "WD": [27.2, 34.1, 45.5, 59.1, 67.3, 67.7], "META": [26.2, 33.1, 44.6, 57.7, 64.9, 65.2], "Funds": [25.8, 32.5, 44.0, 56.8, 63.6, 64.0], "A2H": [25.5, 32.7, 44.0, 57.0, 63.6, 63.9]}}, "Old Perf": {"n": 121, "stages": {"CAGD": [43.0, 50.4, 58.7, 71.9, 76.0, 76.9], "GTG": [44.6, 52.1, 60.3, 73.6, 77.7, 78.5], "POC_intro": [41.3, 49.6, 59.5, 72.7, 76.9, 76.9], "WD": [24.8, 32.2, 50.4, 63.6, 67.8, 67.8], "META": [25.6, 32.2, 50.4, 62.0, 66.9, 66.9], "Funds": [25.6, 32.2, 49.6, 62.0, 65.3, 66.1], "A2H": [24.0, 31.4, 49.6, 62.0, 65.3, 66.1]}}, "Channel Partner": {"n": 174, "stages": {"CAGD": [49.4, 58.0, 66.7, 80.5, 85.6, 86.2], "GTG": [48.9, 57.5, 65.5, 79.3, 84.5, 85.1], "POC_intro": [47.1, 53.4, 64.4, 77.6, 83.3, 83.9], "WD": [29.3, 40.2, 51.1, 65.5, 74.1, 75.3], "META": [29.3, 37.9, 49.4, 63.2, 74.1, 74.7], "Funds": [28.2, 36.8, 48.9, 62.1, 71.8, 72.4], "A2H": [29.3, 37.9, 48.9, 60.9, 70.1, 70.7]}}, "FOS": {"n": 101, "stages": {"CAGD": [39.6, 43.6, 52.5, 63.4, 69.3, 70.3], "GTG": [39.6, 43.6, 52.5, 63.4, 69.3, 70.3], "POC_intro": [39.6, 41.6, 53.5, 65.3, 69.3, 69.3], "WD": [31.7, 35.6, 47.5, 58.4, 62.4, 63.4], "META": [31.7, 35.6, 47.5, 57.4, 61.4, 62.4], "Funds": [31.7, 35.6, 47.5, 57.4, 61.4, 61.4], "A2H": [31.7, 34.7, 47.5, 57.4, 61.4, 61.4]}}, "Others": {"n": 267, "stages": {"CAGD": [15.4, 16.5, 18.4, 21.7, 23.2, 23.2], "GTG": [15.4, 16.5, 18.4, 21.7, 23.2, 23.2], "POC_intro": [13.5, 14.6, 16.9, 19.9, 20.6, 20.6], "WD": [9.4, 10.1, 11.2, 13.9, 16.5, 16.5], "META": [8.6, 9.4, 10.5, 12.7, 15.0, 15.0], "Funds": [8.6, 9.0, 10.1, 12.4, 14.2, 14.2], "A2H": [8.6, 9.0, 10.1, 12.4, 14.2, 14.2]}}, "Re-Activation": {"n": 2, "stages": {"CAGD": [0.0, 0.0, 50.0, 50.0, 50.0, 50.0], "GTG": [0.0, 0.0, 50.0, 50.0, 50.0, 50.0], "POC_intro": [0.0, 0.0, 50.0, 50.0, 50.0, 50.0], "WD": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "META": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "Funds": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "A2H": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}, "#N/A": {"n": 54, "stages": {"CAGD": [27.8, 27.8, 31.5, 35.2, 38.9, 38.9], "GTG": [25.9, 25.9, 29.6, 33.3, 37.0, 37.0], "POC_intro": [24.1, 25.9, 27.8, 31.5, 35.2, 35.2], "WD": [13.0, 16.7, 18.5, 25.9, 27.8, 27.8], "META": [11.1, 13.0, 14.8, 22.2, 24.1, 24.1], "Funds": [11.1, 14.8, 16.7, 24.1, 24.1, 24.1], "A2H": [11.1, 14.8, 16.7, 24.1, 24.1, 24.1]}}}, "June": {"All": {"n": 1846, "stages": {"CAGD": [41.6, 47.1, 57.9, 65.8, 67.4, 67.4], "GTG": [41.2, 46.7, 57.4, 65.1, 66.7, 66.7], "POC_intro": [36.5, 43.0, 54.7, 63.7, 65.0, 65.0], "WD": [23.1, 29.5, 40.8, 51.8, 53.8, 53.8], "META": [21.4, 26.9, 39.8, 50.2, 52.0, 52.0], "Funds": [19.1, 24.5, 34.2, 45.3, 46.9, 46.9], "A2H": [18.7, 23.9, 33.7, 44.4, 46.1, 46.1]}}, "New Perf": {"n": 1286, "stages": {"CAGD": [42.9, 48.7, 60.2, 68.4, 70.2, 70.2], "GTG": [42.9, 48.6, 59.9, 68.1, 69.9, 69.9], "POC_intro": [37.8, 44.8, 56.8, 66.7, 68.3, 68.3], "WD": [24.2, 30.6, 42.2, 54.2, 56.6, 56.6], "META": [22.4, 28.1, 42.3, 53.8, 56.1, 56.1], "Funds": [19.8, 25.4, 36.1, 48.4, 50.4, 50.4], "A2H": [19.4, 24.8, 35.3, 47.0, 49.1, 49.1]}}, "Old Perf": {"n": 110, "stages": {"CAGD": [40.9, 48.2, 60.9, 69.1, 71.8, 71.8], "GTG": [40.9, 48.2, 60.9, 69.1, 71.8, 71.8], "POC_intro": [35.5, 44.5, 58.2, 66.4, 69.1, 69.1], "WD": [24.5, 30.9, 42.7, 59.1, 60.9, 60.9], "META": [21.8, 29.1, 40.0, 52.7, 54.5, 54.5], "Funds": [20.0, 26.4, 32.7, 47.3, 48.2, 48.2], "A2H": [20.9, 27.3, 33.6, 48.2, 50.9, 50.9]}}, "Channel Partner": {"n": 193, "stages": {"CAGD": [46.1, 51.8, 61.7, 68.4, 69.4, 69.4], "GTG": [46.1, 52.3, 62.2, 67.9, 68.9, 68.9], "POC_intro": [40.9, 48.2, 59.6, 67.4, 67.9, 67.9], "WD": [27.5, 37.8, 50.8, 58.0, 59.6, 59.6], "META": [25.4, 33.7, 44.6, 52.3, 52.8, 52.8], "Funds": [23.3, 31.1, 42.0, 48.2, 49.2, 49.2], "A2H": [23.3, 30.1, 42.0, 48.7, 49.2, 49.2]}}, "FOS": {"n": 147, "stages": {"CAGD": [33.3, 36.7, 44.9, 51.7, 52.4, 52.4], "GTG": [30.6, 34.0, 42.2, 49.0, 49.0, 49.0], "POC_intro": [26.5, 29.3, 40.8, 48.3, 48.3, 48.3], "WD": [15.6, 19.7, 32.0, 39.5, 40.1, 40.1], "META": [17.0, 17.7, 28.6, 37.4, 38.1, 38.1], "Funds": [15.0, 16.3, 24.5, 34.7, 35.4, 35.4], "A2H": [13.6, 15.6, 25.2, 34.7, 35.4, 35.4]}}, "Others": {"n": 47, "stages": {"CAGD": [23.4, 27.7, 34.0, 40.4, 40.4, 40.4], "GTG": [23.4, 27.7, 34.0, 40.4, 40.4, 40.4], "POC_intro": [21.3, 23.4, 34.0, 38.3, 38.3, 38.3], "WD": [14.9, 21.3, 25.5, 31.9, 31.9, 31.9], "META": [14.9, 21.3, 27.7, 29.8, 29.8, 29.8], "Funds": [14.9, 19.1, 23.4, 27.7, 27.7, 27.7], "A2H": [14.9, 21.3, 25.5, 29.8, 29.8, 29.8]}}, "Re-Activation": {"n": 13, "stages": {"CAGD": [0.0, 0.0, 7.7, 7.7, 7.7, 7.7], "GTG": [0.0, 0.0, 7.7, 7.7, 7.7, 7.7], "POC_intro": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "WD": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "META": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "Funds": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "A2H": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}, "#N/A": {"n": 50, "stages": {"CAGD": [44.0, 46.0, 52.0, 60.0, 62.0, 62.0], "GTG": [38.0, 40.0, 46.0, 54.0, 56.0, 56.0], "POC_intro": [42.0, 44.0, 50.0, 52.0, 52.0, 52.0], "WD": [10.0, 12.0, 14.0, 18.0, 18.0, 18.0], "META": [4.0, 6.0, 10.0, 14.0, 14.0, 14.0], "Funds": [4.0, 6.0, 6.0, 10.0, 10.0, 10.0], "A2H": [2.0, 4.0, 4.0, 6.0, 6.0, 6.0]}}}, "ideal": {"CAGD": [36, 42, 59, 75, 85, 89], "GTG": [35, 42, 58, 73, 84, 88], "POC_intro": [33, 40, 57, 73, 83, 87], "WD": [22, 29, 45, 65, 76, 81], "META": [21, 28, 44, 63, 75, 80], "Funds": [21, 28, 44, 63, 75, 80], "A2H": [21, 28, 44, 63, 74, 79]}, "horizons": ["d7", "d9", "d15", "d30", "d60", "ever"], "stageOrder": ["CAGD", "GTG", "POC_intro", "WD", "META", "Funds", "A2H"]}, IDEAL=D.ideal, HZ=D.horizons, ST=D.stageOrder;
+let mon='April', src='All', hi=2; // default d15
+const months=['April','May','June'];
+const srcOrder=['All','New Perf','Old Perf','Channel Partner','FOS','Others','Re-Activation','#N/A'];
+const monSel=document.getElementById('mon'), srcSel=document.getElementById('src');
+months.forEach(m=>monSel.add(new Option(m,m)));
+srcOrder.forEach(s=>{ if(D['April'][s]||D['May'][s]||D['June'][s]) srcSel.add(new Option(s,s)); });
+monSel.value=mon; srcSel.value=src;
+const hzDiv=document.getElementById('hz');
+HZ.forEach((h,i)=>{const b=document.createElement('button');b.textContent=h;b.className=i===hi?'on':'';b.onclick=()=>{hi=i;[...hzDiv.children].forEach((x,j)=>x.className=j===hi?'on':'');render();};hzDiv.appendChild(b);});
+monSel.onchange=()=>{mon=monSel.value;render();}; srcSel.onchange=()=>{src=srcSel.value;render();};
+function colorFor(actual,ideal){const g=actual-ideal;return g>=0?'var(--good)':(g>=-10?'var(--warn)':'var(--crit)');}
+function render(){
+  const md=D[mon], node=md[src]||md['All'], h=HZ[hi];
+  document.getElementById('ftitle').textContent=`${mon} · ${src} · ${h}  (n=${node.n})`;
+  // maturity warning
+  const wb=document.getElementById('warn');
+  if(mon==='June' && (h==='d30'||h==='d60')){wb.style.display='block';wb.innerHTML=`⚠️ June is not fully mature at ${h} — its youngest tickets are ~21 days old, so these numbers are a <b>floor</b> and will rise. Use d15 for a fair June comparison.`;}
+  else wb.style.display='none';
+  // KPIs GTG, A2H
+  const gtg=node.stages['GTG'][hi], a2h=node.stages['A2H'][hi];
+  const gI=IDEAL['GTG'][hi], aI=IDEAL['A2H'][hi];
+  document.getElementById('kpis').innerHTML=
+   `<div class="kpi"><div class="n">${gtg}%</div><div class="l">GTG @${h}</div><div class="d ${gtg>=gI?'up':'dn'}">${gtg>=gI?'▲':'▼'}${Math.abs(gtg-gI).toFixed(0)} vs ideal</div></div>`+
+   `<div class="kpi"><div class="n">${a2h}%</div><div class="l">A2H @${h}</div><div class="d ${a2h>=aI?'up':'dn'}">${a2h>=aI?'▲':'▼'}${Math.abs(a2h-aI).toFixed(0)} vs ideal</div></div>`;
+  // funnel bars
+  document.getElementById('funnel').innerHTML=ST.map(st=>{
+    const v=node.stages[st][hi], id=IDEAL[st][hi], g=v-id;
+    return `<div class="row"><div class="cat">${st}</div><div class="track"><div class="bar" style="width:${v}%;background:${colorFor(v,id)}"></div><div class="ideal" style="left:${Math.min(id,100)}%"></div></div><div class="val"><b>${v}%</b> <span class="dl ${g>=0?'up':'dn'}">${g>=0?'+':''}${g.toFixed(0)}</span></div></div>`;
+  }).join('');
+  // leaderboard: sources ranked by GTG at this month+horizon
+  document.getElementById('lbtitle').textContent=`Sources — GTG & A2H @${h} (${mon})`;
+  const rows=srcOrder.filter(s=>s!=='All'&&md[s]).map(s=>({s,n:md[s].n,gtg:md[s].stages['GTG'][hi],a2h:md[s].stages['A2H'][hi]})).sort((a,b)=>b.gtg-a.gtg);
+  document.getElementById('board').innerHTML=`<div class="lb-row hd"><div>source (n)</div><div class="v">GTG</div><div class="v">A2H</div></div>`+
+    rows.map(r=>`<div class="lb-row"><div class="s"><i class="dot" style="background:${colorFor(r.gtg,gI)}"></i>${r.s} <span style="color:var(--ink3);font-size:11px">${r.n}</span></div><div class="v" style="color:${colorFor(r.gtg,gI)}">${r.gtg}%</div><div class="v" style="color:${colorFor(r.a2h,aI)}">${r.a2h}%</div></div>`).join('');
+  document.getElementById('note').innerHTML=`Ideal @${h}: GTG ${gI}%, A2H ${aI}%. Bars/dots colored vs the stage's ideal at this horizon (green ≥ ideal, amber within 10pt, red >10pt below). Ideal = the 75%-GoLive target funnel, phased at observed cadence. June d30/d60 immature (floor).`;
+}
+render();
+</script>
