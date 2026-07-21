@@ -1,0 +1,104 @@
+<title>June Funnel by Source</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--ground:#FAFAF7;--surface:#fff;--surface2:#f3f3ee;--ink:#1a1f2b;--ink2:#4a5262;--ink3:#818a99;--navy:#1F3864;--navy2:#3a5891;--track:#e8ebf2;--ideal:#C7962B;--crit:#B23A48;--good:#2f6b4f;--line:#e6e6df}
+:root{--ink3:#818a99}
+@media(prefers-color-scheme:dark){:root{--ground:#14181f;--surface:#1b212b;--surface2:#222a36;--ink:#e8eaed;--ink2:#aab2c0;--ink3:#7a8393;--navy:#7ba3e0;--navy2:#5f83bd;--track:#2a3342;--ideal:#E0B65C;--crit:#e6717f;--good:#6fca9f;--line:#2c3542}:root{--ink3:#7a8393}}
+:root[data-theme=light]{--ground:#FAFAF7;--surface:#fff;--surface2:#f3f3ee;--ink:#1a1f2b;--ink2:#4a5262;--ink3:#818a99;--navy:#1F3864;--navy2:#3a5891;--track:#e8ebf2;--ideal:#C7962B;--crit:#B23A48;--good:#2f6b4f;--line:#e6e6df}
+:root[data-theme=dark]{--ground:#14181f;--surface:#1b212b;--surface2:#222a36;--ink:#e8eaed;--ink2:#aab2c0;--ink3:#7a8393;--navy:#7ba3e0;--navy2:#5f83bd;--track:#2a3342;--ideal:#E0B65C;--crit:#e6717f;--good:#6fca9f;--line:#2c3542}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;line-height:1.5}
+.wrap{max-width:920px;margin:0 auto;padding:clamp(24px,4vw,48px) clamp(16px,4vw,36px)}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);font-weight:650;margin:0 0 8px}
+h1{font-size:clamp(24px,4vw,34px);letter-spacing:-.02em;margin:0 0 8px;text-wrap:balance}
+.sub{color:var(--ink2);font-size:15px;margin:0 0 22px}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;margin-bottom:24px;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.ctl label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px;font-weight:600}
+select{font:inherit;font-size:15px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink);min-width:190px;cursor:pointer}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+.kpi .n{font-size:clamp(22px,3.5vw,29px);font-weight:720;letter-spacing:-.02em;line-height:1}
+.kpi .l{font-size:12px;color:var(--ink3);margin-top:7px}
+.kpi .d{font-size:12px;margin-top:3px;font-weight:600}
+.up{color:var(--good)}.dn{color:var(--crit)}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+.legend{display:flex;gap:18px;font-size:12px;color:var(--ink2);margin-bottom:16px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:10px;border-radius:2px;display:inline-block}
+.row{display:grid;grid-template-columns:118px 1fr 118px;align-items:center;gap:12px;margin-bottom:7px}
+.row .cat{font-size:13px;color:var(--ink2);text-align:right}
+.track{position:relative;background:var(--track);border-radius:5px;height:26px}
+.bar{height:100%;background:var(--navy);border-radius:5px;min-width:2px;transition:width .35s ease}
+.bar.crit{background:var(--crit)}
+.ideal{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ideal);border-radius:2px}
+.ideal::after{content:'';position:absolute;top:-3px;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--ideal)}
+.val{font-size:13px;text-align:left;color:var(--ink)}
+.val b{font-weight:700}.val .cnt{color:var(--ink3);font-size:11.5px}
+.step{font-size:11px;color:var(--ink3);text-align:right}
+.step.leak{color:var(--crit);font-weight:700}
+.note{font-size:12.5px;color:var(--ink3);margin-top:18px;line-height:1.6}
+.callout{margin-top:16px;padding:12px 16px;background:var(--surface2);border-left:3px solid var(--crit);border-radius:8px;font-size:13.5px;color:var(--ink2)}
+@media(max-width:620px){.kpis{grid-template-columns:1fr 1fr}.row{grid-template-columns:82px 1fr 70px}.step{display:none}}
+</style>
+<div class="wrap">
+  <p class="eyebrow">Onboarding · June 2026 cohort</p>
+  <h1>June funnel movement by source</h1>
+  <p class="sub">Where each lead source's sellers sit across the onboarding funnel, against the best-in-class ("ideal") benchmark. Pick a source to redraw.</p>
+  <div class="controls">
+    <div class="ctl"><label>Source (bars)</label><select id="src"></select></div>
+    <div class="ctl"><label>Ideal benchmark (line)</label><select id="bench"></select></div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="chart">
+    <div class="legend">
+      <span><i class="sw" style="background:var(--navy)"></i> selected source · % of its sellers reaching stage</span>
+      <span><i class="sw" style="background:var(--ideal);width:10px;height:10px;border-radius:50%"></i> ideal benchmark</span>
+      <span><i class="sw" style="background:var(--crit)"></i> biggest single-stage drop</span>
+    </div>
+    <div id="funnel"></div>
+    <div class="callout" id="leak"></div>
+    <div class="note" id="note"></div>
+  </div>
+</div>
+<script>
+const DATA={"All": [{"stage": "Sales", "n": 1846, "pct": 100.0}, {"stage": "CAGD", "n": 1244, "pct": 67.4}, {"stage": "GTG", "n": 1231, "pct": 66.7}, {"stage": "Catalogue", "n": 1214, "pct": 65.8}, {"stage": "POC intro", "n": 1200, "pct": 65.0}, {"stage": "Web config", "n": 1078, "pct": 58.4}, {"stage": "Website disc.", "n": 993, "pct": 53.8}, {"stage": "Domain transfer", "n": 951, "pct": 51.5}, {"stage": "Meta setup", "n": 960, "pct": 52.0}, {"stage": "Fund transfer", "n": 866, "pct": 46.9}, {"stage": "QC check", "n": 851, "pct": 46.1}, {"stage": "Seller consent", "n": 857, "pct": 46.4}, {"stage": "Launch", "n": 856, "pct": 46.4}], "New Perf": [{"stage": "Sales", "n": 1286, "pct": 100.0}, {"stage": "CAGD", "n": 903, "pct": 70.2}, {"stage": "GTG", "n": 899, "pct": 69.9}, {"stage": "Catalogue", "n": 882, "pct": 68.6}, {"stage": "POC intro", "n": 878, "pct": 68.3}, {"stage": "Web config", "n": 785, "pct": 61.0}, {"stage": "Website disc.", "n": 728, "pct": 56.6}, {"stage": "Domain transfer", "n": 701, "pct": 54.5}, {"stage": "Meta setup", "n": 721, "pct": 56.1}, {"stage": "Fund transfer", "n": 648, "pct": 50.4}, {"stage": "QC check", "n": 631, "pct": 49.1}, {"stage": "Seller consent", "n": 635, "pct": 49.4}, {"stage": "Launch", "n": 634, "pct": 49.3}], "Old Perf": [{"stage": "Sales", "n": 110, "pct": 100.0}, {"stage": "CAGD", "n": 79, "pct": 71.8}, {"stage": "GTG", "n": 79, "pct": 71.8}, {"stage": "Catalogue", "n": 77, "pct": 70.0}, {"stage": "POC intro", "n": 76, "pct": 69.1}, {"stage": "Web config", "n": 69, "pct": 62.7}, {"stage": "Website disc.", "n": 67, "pct": 60.9}, {"stage": "Domain transfer", "n": 63, "pct": 57.3}, {"stage": "Meta setup", "n": 60, "pct": 54.5}, {"stage": "Fund transfer", "n": 53, "pct": 48.2}, {"stage": "QC check", "n": 56, "pct": 50.9}, {"stage": "Seller consent", "n": 55, "pct": 50.0}, {"stage": "Launch", "n": 56, "pct": 50.9}], "Channel Partner": [{"stage": "Sales", "n": 193, "pct": 100.0}, {"stage": "CAGD", "n": 134, "pct": 69.4}, {"stage": "GTG", "n": 133, "pct": 68.9}, {"stage": "Catalogue", "n": 132, "pct": 68.4}, {"stage": "POC intro", "n": 131, "pct": 67.9}, {"stage": "Web config", "n": 118, "pct": 61.1}, {"stage": "Website disc.", "n": 115, "pct": 59.6}, {"stage": "Domain transfer", "n": 109, "pct": 56.5}, {"stage": "Meta setup", "n": 102, "pct": 52.8}, {"stage": "Fund transfer", "n": 95, "pct": 49.2}, {"stage": "QC check", "n": 95, "pct": 49.2}, {"stage": "Seller consent", "n": 97, "pct": 50.3}, {"stage": "Launch", "n": 96, "pct": 49.7}], "FOS": [{"stage": "Sales", "n": 147, "pct": 100.0}, {"stage": "CAGD", "n": 77, "pct": 52.4}, {"stage": "GTG", "n": 72, "pct": 49.0}, {"stage": "Catalogue", "n": 74, "pct": 50.3}, {"stage": "POC intro", "n": 71, "pct": 48.3}, {"stage": "Web config", "n": 68, "pct": 46.3}, {"stage": "Website disc.", "n": 59, "pct": 40.1}, {"stage": "Domain transfer", "n": 57, "pct": 38.8}, {"stage": "Meta setup", "n": 56, "pct": 38.1}, {"stage": "Fund transfer", "n": 52, "pct": 35.4}, {"stage": "QC check", "n": 52, "pct": 35.4}, {"stage": "Seller consent", "n": 52, "pct": 35.4}, {"stage": "Launch", "n": 53, "pct": 36.1}], "Others": [{"stage": "Sales", "n": 47, "pct": 100.0}, {"stage": "CAGD", "n": 19, "pct": 40.4}, {"stage": "GTG", "n": 19, "pct": 40.4}, {"stage": "Catalogue", "n": 19, "pct": 40.4}, {"stage": "POC intro", "n": 18, "pct": 38.3}, {"stage": "Web config", "n": 17, "pct": 36.2}, {"stage": "Website disc.", "n": 15, "pct": 31.9}, {"stage": "Domain transfer", "n": 15, "pct": 31.9}, {"stage": "Meta setup", "n": 14, "pct": 29.8}, {"stage": "Fund transfer", "n": 13, "pct": 27.7}, {"stage": "QC check", "n": 14, "pct": 29.8}, {"stage": "Seller consent", "n": 14, "pct": 29.8}, {"stage": "Launch", "n": 14, "pct": 29.8}], "Re-Activation": [{"stage": "Sales", "n": 13, "pct": 100.0}, {"stage": "CAGD", "n": 1, "pct": 7.7}, {"stage": "GTG", "n": 1, "pct": 7.7}, {"stage": "Catalogue", "n": 1, "pct": 7.7}, {"stage": "POC intro", "n": 0, "pct": 0.0}, {"stage": "Web config", "n": 0, "pct": 0.0}, {"stage": "Website disc.", "n": 0, "pct": 0.0}, {"stage": "Domain transfer", "n": 0, "pct": 0.0}, {"stage": "Meta setup", "n": 0, "pct": 0.0}, {"stage": "Fund transfer", "n": 0, "pct": 0.0}, {"stage": "QC check", "n": 0, "pct": 0.0}, {"stage": "Seller consent", "n": 0, "pct": 0.0}, {"stage": "Launch", "n": 0, "pct": 0.0}], "#N/A": [{"stage": "Sales", "n": 50, "pct": 100.0}, {"stage": "CAGD", "n": 31, "pct": 62.0}, {"stage": "GTG", "n": 28, "pct": 56.0}, {"stage": "Catalogue", "n": 29, "pct": 58.0}, {"stage": "POC intro", "n": 26, "pct": 52.0}, {"stage": "Web config", "n": 21, "pct": 42.0}, {"stage": "Website disc.", "n": 9, "pct": 18.0}, {"stage": "Domain transfer", "n": 6, "pct": 12.0}, {"stage": "Meta setup", "n": 7, "pct": 14.0}, {"stage": "Fund transfer", "n": 5, "pct": 10.0}, {"stage": "QC check", "n": 3, "pct": 6.0}, {"stage": "Seller consent", "n": 4, "pct": 8.0}, {"stage": "Launch", "n": 3, "pct": 6.0}]};
+const sources=Object.keys(DATA);
+const stages=DATA['All'].map(x=>x.stage);
+// ideal = best-in-class per stage across real sources (exclude tiny/junk)
+const realSrc=sources.filter(s=>!['#N/A','Re-Activation','All'].includes(s));
+function benchSeries(name){
+  if(name==='Best-in-class') return stages.map((_,i)=>Math.max(...realSrc.map(s=>DATA[s][i].pct)));
+  return DATA[name].map(x=>x.pct);
+}
+const srcSel=document.getElementById('src'), benchSel=document.getElementById('bench');
+sources.forEach(s=>srcSel.add(new Option(s,s)));
+['Best-in-class','All',...sources.filter(s=>s!=='All')].forEach(s=>benchSel.add(new Option(s==='All'?'All June (avg)':s,s)));
+srcSel.value='All'; benchSel.value='Best-in-class';
+function render(){
+  const s=srcSel.value, f=DATA[s], bench=benchSeries(benchSel.value);
+  // step conversions + biggest leak
+  let steps=f.map((x,i)=>i===0?100:(f[i-1].n?100*x.n/f[i-1].n:0));
+  let worst=-1,worstDrop=100; steps.forEach((v,i)=>{if(i>0&&v<worstDrop){worstDrop=v;worst=i;}});
+  // KPIs
+  const get=lab=>f.find(x=>x.stage===lab);
+  const bnFor=lab=>{const i=stages.indexOf(lab);return bench[i];};
+  const kdefs=[['Sellers',get('Sales').n,null,''],['CAGD (docs)',get('CAGD').pct,bnFor('CAGD'),'%'],['GTG',get('GTG').pct,bnFor('GTG'),'%'],['Launch',get('Launch').pct,bnFor('Launch'),'%']];
+  document.getElementById('kpis').innerHTML=kdefs.map(([l,v,bn,u])=>{
+    let d='';
+    if(bn!=null){const gap=v-bn;d=`<div class="d ${gap>=0?'up':'dn'}">${gap>=0?'▲':'▼'} ${Math.abs(gap).toFixed(1)} pt vs ideal</div>`;}
+    return `<div class="kpi"><div class="n">${u==='%'?v.toFixed(1)+'%':v.toLocaleString()}</div><div class="l">${l}</div>${d}</div>`;
+  }).join('');
+  // funnel rows
+  document.getElementById('funnel').innerHTML=f.map((x,i)=>{
+    const leak=(i===worst);
+    return `<div class="row"><div class="cat">${x.stage}</div>
+      <div class="track"><div class="bar ${leak?'crit':''}" style="width:${x.pct}%"></div>
+      <div class="ideal" style="left:${Math.min(bench[i],100)}%" title="ideal ${bench[i].toFixed(1)}%"></div></div>
+      <div class="val"><b>${x.pct.toFixed(1)}%</b> <span class="cnt">(${x.n.toLocaleString()})</span>
+      <div class="step ${leak?'leak':''}">${i===0?'':'step '+steps[i].toFixed(0)+'%'}</div></div></div>`;
+  }).join('');
+  document.getElementById('leak').innerHTML=`<b>Biggest single-stage drop for ${s==='All'?'June (all)':s}:</b> ${stages[worst-1]} → ${stages[worst]} keeps only <b>${worstDrop.toFixed(0)}%</b>. ${worst===1?'The wall is at document collection — the first real step.':''}`;
+  document.getElementById('note').innerHTML=`Bars = % of ${s==='All'?'all June':'<b>'+s+'</b>'} sellers reaching each stage (current snapshot). Ideal line = <b>${benchSel.value==='Best-in-class'?'best source at each stage':benchSel.value}</b>. ⚠ June cohort is 20–50 days old — stages from <b>Fund transfer</b> onward are not fully mature and will keep filling; read them as a floor. Price-parity stage omitted (not recorded in source data).`;
+}
+srcSel.onchange=render; benchSel.onchange=render; render();
+</script>
