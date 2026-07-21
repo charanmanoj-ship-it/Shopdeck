@@ -1,0 +1,99 @@
+<title>June Funnel — Ideal vs Actual</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--ground:#FAFAF7;--surface:#fff;--surface2:#f3f3ee;--ink:#1a1f2b;--ink2:#4a5262;--ink3:#818a99;--navy:#1F3864;--track:#e8ebf2;--ideal:#C7962B;--good:#2f6b4f;--crit:#B23A48;--line:#e6e6df}
+@media(prefers-color-scheme:dark){:root{--ground:#14181f;--surface:#1b212b;--surface2:#222a36;--ink:#e8eaed;--ink2:#aab2c0;--ink3:#7a8393;--navy:#7ba3e0;--track:#2a3342;--ideal:#E0B65C;--good:#6fca9f;--crit:#e6717f;--line:#2c3542}}
+:root[data-theme=light]{--ground:#FAFAF7;--surface:#fff;--surface2:#f3f3ee;--ink:#1a1f2b;--ink2:#4a5262;--ink3:#818a99;--navy:#1F3864;--track:#e8ebf2;--ideal:#C7962B;--good:#2f6b4f;--crit:#B23A48;--line:#e6e6df}
+:root[data-theme=dark]{--ground:#14181f;--surface:#1b212b;--surface2:#222a36;--ink:#e8eaed;--ink2:#aab2c0;--ink3:#7a8393;--navy:#7ba3e0;--track:#2a3342;--ideal:#E0B65C;--good:#6fca9f;--crit:#e6717f;--line:#2c3542}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:clamp(24px,4vw,48px) clamp(16px,4vw,36px)}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);font-weight:650;margin:0 0 8px}
+h1{font-size:clamp(23px,4vw,33px);letter-spacing:-.02em;margin:0 0 8px;text-wrap:balance}
+.sub{color:var(--ink2);font-size:15px;margin:0 0 22px}
+.controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;margin-bottom:24px;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+label.lb{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;font-weight:600}
+select{font:inherit;font-size:15px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink);min-width:180px;cursor:pointer}
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.toggle button{font:inherit;font-size:14px;font-weight:600;padding:8px 16px;border:0;background:var(--surface2);color:var(--ink2);cursor:pointer}
+.toggle button.on{background:var(--navy);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+.kpi .n{font-size:clamp(22px,3.5vw,30px);font-weight:720;letter-spacing:-.02em;line-height:1}
+.kpi .l{font-size:12px;color:var(--ink3);margin-top:7px}
+.kpi .d{font-size:12px;margin-top:4px;font-weight:600}
+.up{color:var(--good)}.dn{color:var(--crit)}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+.legend{display:flex;gap:18px;font-size:12px;color:var(--ink2);margin-bottom:16px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}.sw{width:14px;height:10px;border-radius:2px}
+.hd{display:grid;grid-template-columns:130px 1fr 128px;gap:12px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);font-weight:600;margin-bottom:8px}
+.hd .r{text-align:right}
+.row{display:grid;grid-template-columns:130px 1fr 128px;align-items:center;gap:12px;margin-bottom:8px}
+.row .cat{font-size:13.5px;color:var(--ink2)}
+.track{position:relative;background:var(--track);border-radius:5px;height:27px}
+.bar{height:100%;background:var(--navy);border-radius:5px;min-width:2px;transition:width .35s ease}
+.ideal{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ideal)}
+.ideal::after{content:'';position:absolute;top:-4px;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--ideal)}
+.val{text-align:right;font-size:13px}
+.val b{font-weight:700}.val .id{color:var(--ink3);font-size:11.5px}
+.dlt{font-weight:700;font-size:12px}
+.note{font-size:12.5px;color:var(--ink3);margin-top:16px;line-height:1.6}
+.callout{margin-top:16px;padding:12px 16px;background:var(--surface2);border-left:3px solid var(--navy);border-radius:8px;font-size:13.5px;color:var(--ink2)}
+@media(max-width:600px){.kpis{grid-template-columns:1fr}.hd,.row{grid-template-columns:92px 1fr 86px}}
+</style>
+<div class="wrap">
+  <p class="eyebrow">Onboarding · June 2026 cohort · ideal = 7-day target</p>
+  <h1>June funnel: actual vs ideal</h1>
+  <p class="sub">How far each stage gets within the window, against your 7-day ideal funnel. Both horizons are fully mature for June (youngest ticket is 20 days old), so these are final, not floors.</p>
+  <div class="controls">
+    <div><label class="lb">Source</label><select id="src"></select></div>
+    <div><label class="lb">Window</label><div class="toggle"><button data-h="d7" class="on">0–7 days</button><button data-h="d9">0–9 days</button></div></div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="chart">
+    <div class="legend">
+      <span><i class="sw" style="background:var(--navy)"></i> actual (% of sales reaching stage)</span>
+      <span><i class="sw" style="background:var(--ideal);width:10px;height:10px;border-radius:50%"></i> ideal (7-day target)</span>
+    </div>
+    <div class="hd"><div>Stage</div><div></div><div class="r">actual · ideal · Δ</div></div>
+    <div id="funnel"></div>
+    <div class="callout" id="cap"></div>
+    <div class="note" id="note"></div>
+  </div>
+</div>
+<script>
+const D={"d7": {"All": [{"stage": "Sales", "n": 1846, "pct": 100.0}, {"stage": "P0 CAGD", "n": 1846, "pct": 100.0}, {"stage": "GTG", "n": 761, "pct": 41.2}, {"stage": "POC_intro", "n": 674, "pct": 36.5}, {"stage": "WD", "n": 426, "pct": 23.1}, {"stage": "meta_setup", "n": 395, "pct": 21.4}, {"stage": "Funds_transfer", "n": 353, "pct": 19.1}, {"stage": "A2H", "n": 345, "pct": 18.7}, {"stage": "GoLive", "n": 347, "pct": 18.8}], "New Perf": [{"stage": "Sales", "n": 1286, "pct": 100.0}, {"stage": "P0 CAGD", "n": 1286, "pct": 100.0}, {"stage": "GTG", "n": 552, "pct": 42.9}, {"stage": "POC_intro", "n": 486, "pct": 37.8}, {"stage": "WD", "n": 311, "pct": 24.2}, {"stage": "meta_setup", "n": 288, "pct": 22.4}, {"stage": "Funds_transfer", "n": 255, "pct": 19.8}, {"stage": "A2H", "n": 249, "pct": 19.4}, {"stage": "GoLive", "n": 251, "pct": 19.5}], "Old Perf": [{"stage": "Sales", "n": 110, "pct": 100.0}, {"stage": "P0 CAGD", "n": 110, "pct": 100.0}, {"stage": "GTG", "n": 45, "pct": 40.9}, {"stage": "POC_intro", "n": 39, "pct": 35.5}, {"stage": "WD", "n": 27, "pct": 24.5}, {"stage": "meta_setup", "n": 24, "pct": 21.8}, {"stage": "Funds_transfer", "n": 22, "pct": 20.0}, {"stage": "A2H", "n": 23, "pct": 20.9}, {"stage": "GoLive", "n": 23, "pct": 20.9}], "Channel Partner": [{"stage": "Sales", "n": 193, "pct": 100.0}, {"stage": "P0 CAGD", "n": 193, "pct": 100.0}, {"stage": "GTG", "n": 89, "pct": 46.1}, {"stage": "POC_intro", "n": 79, "pct": 40.9}, {"stage": "WD", "n": 53, "pct": 27.5}, {"stage": "meta_setup", "n": 49, "pct": 25.4}, {"stage": "Funds_transfer", "n": 45, "pct": 23.3}, {"stage": "A2H", "n": 45, "pct": 23.3}, {"stage": "GoLive", "n": 45, "pct": 23.3}], "FOS": [{"stage": "Sales", "n": 147, "pct": 100.0}, {"stage": "P0 CAGD", "n": 147, "pct": 100.0}, {"stage": "GTG", "n": 45, "pct": 30.6}, {"stage": "POC_intro", "n": 39, "pct": 26.5}, {"stage": "WD", "n": 23, "pct": 15.6}, {"stage": "meta_setup", "n": 25, "pct": 17.0}, {"stage": "Funds_transfer", "n": 22, "pct": 15.0}, {"stage": "A2H", "n": 20, "pct": 13.6}, {"stage": "GoLive", "n": 20, "pct": 13.6}], "Others": [{"stage": "Sales", "n": 47, "pct": 100.0}, {"stage": "P0 CAGD", "n": 47, "pct": 100.0}, {"stage": "GTG", "n": 11, "pct": 23.4}, {"stage": "POC_intro", "n": 10, "pct": 21.3}, {"stage": "WD", "n": 7, "pct": 14.9}, {"stage": "meta_setup", "n": 7, "pct": 14.9}, {"stage": "Funds_transfer", "n": 7, "pct": 14.9}, {"stage": "A2H", "n": 7, "pct": 14.9}, {"stage": "GoLive", "n": 7, "pct": 14.9}], "Re-Activation": [{"stage": "Sales", "n": 13, "pct": 100.0}, {"stage": "P0 CAGD", "n": 13, "pct": 100.0}, {"stage": "GTG", "n": 0, "pct": 0.0}, {"stage": "POC_intro", "n": 0, "pct": 0.0}, {"stage": "WD", "n": 0, "pct": 0.0}, {"stage": "meta_setup", "n": 0, "pct": 0.0}, {"stage": "Funds_transfer", "n": 0, "pct": 0.0}, {"stage": "A2H", "n": 0, "pct": 0.0}, {"stage": "GoLive", "n": 0, "pct": 0.0}], "#N/A": [{"stage": "Sales", "n": 50, "pct": 100.0}, {"stage": "P0 CAGD", "n": 50, "pct": 100.0}, {"stage": "GTG", "n": 19, "pct": 38.0}, {"stage": "POC_intro", "n": 21, "pct": 42.0}, {"stage": "WD", "n": 5, "pct": 10.0}, {"stage": "meta_setup", "n": 2, "pct": 4.0}, {"stage": "Funds_transfer", "n": 2, "pct": 4.0}, {"stage": "A2H", "n": 1, "pct": 2.0}, {"stage": "GoLive", "n": 1, "pct": 2.0}]}, "d9": {"All": [{"stage": "Sales", "n": 1846, "pct": 100.0}, {"stage": "P0 CAGD", "n": 1846, "pct": 100.0}, {"stage": "GTG", "n": 862, "pct": 46.7}, {"stage": "POC_intro", "n": 794, "pct": 43.0}, {"stage": "WD", "n": 545, "pct": 29.5}, {"stage": "meta_setup", "n": 497, "pct": 26.9}, {"stage": "Funds_transfer", "n": 452, "pct": 24.5}, {"stage": "A2H", "n": 442, "pct": 23.9}, {"stage": "GoLive", "n": 445, "pct": 24.1}], "New Perf": [{"stage": "Sales", "n": 1286, "pct": 100.0}, {"stage": "P0 CAGD", "n": 1286, "pct": 100.0}, {"stage": "GTG", "n": 625, "pct": 48.6}, {"stage": "POC_intro", "n": 576, "pct": 44.8}, {"stage": "WD", "n": 393, "pct": 30.6}, {"stage": "meta_setup", "n": 361, "pct": 28.1}, {"stage": "Funds_transfer", "n": 327, "pct": 25.4}, {"stage": "A2H", "n": 319, "pct": 24.8}, {"stage": "GoLive", "n": 321, "pct": 25.0}], "Old Perf": [{"stage": "Sales", "n": 110, "pct": 100.0}, {"stage": "P0 CAGD", "n": 110, "pct": 100.0}, {"stage": "GTG", "n": 53, "pct": 48.2}, {"stage": "POC_intro", "n": 49, "pct": 44.5}, {"stage": "WD", "n": 34, "pct": 30.9}, {"stage": "meta_setup", "n": 32, "pct": 29.1}, {"stage": "Funds_transfer", "n": 29, "pct": 26.4}, {"stage": "A2H", "n": 30, "pct": 27.3}, {"stage": "GoLive", "n": 30, "pct": 27.3}], "Channel Partner": [{"stage": "Sales", "n": 193, "pct": 100.0}, {"stage": "P0 CAGD", "n": 193, "pct": 100.0}, {"stage": "GTG", "n": 101, "pct": 52.3}, {"stage": "POC_intro", "n": 93, "pct": 48.2}, {"stage": "WD", "n": 73, "pct": 37.8}, {"stage": "meta_setup", "n": 65, "pct": 33.7}, {"stage": "Funds_transfer", "n": 60, "pct": 31.1}, {"stage": "A2H", "n": 58, "pct": 30.1}, {"stage": "GoLive", "n": 59, "pct": 30.6}], "FOS": [{"stage": "Sales", "n": 147, "pct": 100.0}, {"stage": "P0 CAGD", "n": 147, "pct": 100.0}, {"stage": "GTG", "n": 50, "pct": 34.0}, {"stage": "POC_intro", "n": 43, "pct": 29.3}, {"stage": "WD", "n": 29, "pct": 19.7}, {"stage": "meta_setup", "n": 26, "pct": 17.7}, {"stage": "Funds_transfer", "n": 24, "pct": 16.3}, {"stage": "A2H", "n": 23, "pct": 15.6}, {"stage": "GoLive", "n": 23, "pct": 15.6}], "Others": [{"stage": "Sales", "n": 47, "pct": 100.0}, {"stage": "P0 CAGD", "n": 47, "pct": 100.0}, {"stage": "GTG", "n": 13, "pct": 27.7}, {"stage": "POC_intro", "n": 11, "pct": 23.4}, {"stage": "WD", "n": 10, "pct": 21.3}, {"stage": "meta_setup", "n": 10, "pct": 21.3}, {"stage": "Funds_transfer", "n": 9, "pct": 19.1}, {"stage": "A2H", "n": 10, "pct": 21.3}, {"stage": "GoLive", "n": 10, "pct": 21.3}], "Re-Activation": [{"stage": "Sales", "n": 13, "pct": 100.0}, {"stage": "P0 CAGD", "n": 13, "pct": 100.0}, {"stage": "GTG", "n": 0, "pct": 0.0}, {"stage": "POC_intro", "n": 0, "pct": 0.0}, {"stage": "WD", "n": 0, "pct": 0.0}, {"stage": "meta_setup", "n": 0, "pct": 0.0}, {"stage": "Funds_transfer", "n": 0, "pct": 0.0}, {"stage": "A2H", "n": 0, "pct": 0.0}, {"stage": "GoLive", "n": 0, "pct": 0.0}], "#N/A": [{"stage": "Sales", "n": 50, "pct": 100.0}, {"stage": "P0 CAGD", "n": 50, "pct": 100.0}, {"stage": "GTG", "n": 20, "pct": 40.0}, {"stage": "POC_intro", "n": 22, "pct": 44.0}, {"stage": "WD", "n": 6, "pct": 12.0}, {"stage": "meta_setup", "n": 3, "pct": 6.0}, {"stage": "Funds_transfer", "n": 3, "pct": 6.0}, {"stage": "A2H", "n": 2, "pct": 4.0}, {"stage": "GoLive", "n": 2, "pct": 4.0}]}, "ideal": {"Sales": 100, "P0 CAGD": 100, "GTG": 42, "POC_intro": 39, "WD": 22, "meta_setup": 21, "Funds_transfer": 21, "A2H": 21, "GoLive": 18}}, IDEAL=D.ideal;
+let horizon='d7', src='All';
+const sources=Object.keys(D.d7);
+const srcSel=document.getElementById('src');
+sources.forEach(s=>srcSel.add(new Option(s+' (n='+D.d7[s][0].n+')',s)));
+srcSel.value='All';
+document.querySelectorAll('.toggle button').forEach(b=>b.onclick=()=>{
+  horizon=b.dataset.h; document.querySelectorAll('.toggle button').forEach(x=>x.classList.toggle('on',x===b)); render();});
+srcSel.onchange=()=>{src=srcSel.value;render();};
+function render(){
+  const f=D[horizon][src];
+  const get=l=>f.find(x=>x.stage===l);
+  const k=[['GTG',get('GTG')],['Funds_transfer',get('Funds_transfer')],['GoLive',get('GoLive')]];
+  document.getElementById('kpis').innerHTML=k.map(([l,x])=>{
+    const id=IDEAL[l],g=x.pct-id;
+    return `<div class="kpi"><div class="n">${x.pct.toFixed(1)}%</div><div class="l">${l} · ${x.n.toLocaleString()} sellers</div><div class="d ${g>=0?'up':'dn'}">${g>=0?'▲':'▼'} ${Math.abs(g).toFixed(1)} pt vs ideal ${id}%</div></div>`;
+  }).join('');
+  document.getElementById('funnel').innerHTML=f.map(x=>{
+    const id=IDEAL[x.stage]??null, g=id==null?null:x.pct-id;
+    const idmark=id==null?'':`<div class="ideal" style="left:${Math.min(id,100)}%" title="ideal ${id}%"></div>`;
+    const dl=g==null?'':`<span class="dlt ${g>=0?'up':'dn'}">${g>=0?'+':''}${g.toFixed(1)}</span>`;
+    const idtxt=id==null?'':`<span class="id"> · ${id}%</span>`;
+    return `<div class="row"><div class="cat">${x.stage}</div>
+      <div class="track"><div class="bar" style="width:${x.pct}%"></div>${idmark}</div>
+      <div class="val"><b>${x.pct.toFixed(1)}%</b>${idtxt} ${dl}</div></div>`;
+  }).join('');
+  // biggest shortfall vs ideal
+  let worst=null;
+  f.forEach(x=>{const id=IDEAL[x.stage];if(id!=null&&x.stage!=='Sales'&&x.stage!=='P0 CAGD'){const g=x.pct-id;if(worst===null||g<worst.g)worst={s:x.stage,g};}});
+  const wtxt=worst&&worst.g<0?`Biggest gap to ideal: <b>${worst.s}</b> (${worst.g.toFixed(1)} pt below target).`:`Every stage is <b>at or above</b> the 7-day ideal.`;
+  document.getElementById('cap').innerHTML=`<b>${src==='All'?'June (all sources)':src} · ${horizon==='d7'?'0–7':'0–9'} days:</b> ${wtxt}`;
+  document.getElementById('note').innerHTML=`P0 CAGD = CAGD task <b>created</b> (≈100%); all later stages = task <b>completed</b> within the window. A2H = qc_check, GoLive = launch milestone. Ideal line is your <b>7-day target</b>; on the 0–9 view actuals naturally sit above it. June is fully mature at both horizons — these are final numbers.`;
+}
+render();
+</script>
