@@ -2,13 +2,13 @@ name: Daily Sales to Churn Initiation Cohort
 
 on:
   schedule:
-    # Runs at 1:00 AM IST (7:30 PM UTC) every day
-    - cron: '30 19 * * *'
+    # Runs at 10:00 AM IST (4:30 AM UTC) every day
+    - cron: '30 4 * * *'
   workflow_dispatch: {}   # Allow manual trigger from GitHub UI
 
 jobs:
   run-churn-initiation-query:
-    name: Refresh Sales to Churn Initiation table
+    name: Refresh and report Sales to Churn Initiation
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +23,7 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Run BigQuery query and write to destination table
+      - name: Refresh BigQuery destination table
         run: |
           bq query \
             --project_id=blitzscale-prod-project \
@@ -32,3 +32,62 @@ jobs:
             --replace \
             --location=asia-south1 \
             "$(cat queries/sales_to_churn_initiation_scheduled.sql)"
+
+      - name: Fetch last 15 days for Slack report
+        id: fetch
+        run: |
+          bq query \
+            --project_id=blitzscale-prod-project \
+            --use_legacy_sql=false \
+            --format=csv \
+            --location=asia-south1 \
+            "SELECT * FROM \`blitzscale-prod-project.nushop.sales_to_churn_initiation_daily\`
+             WHERE sale_date >= DATE_SUB(CURRENT_DATE('Asia/Kolkata'), INTERVAL 15 DAY)
+             ORDER BY sale_date DESC" \
+          > /tmp/churn_cohort.csv
+          echo "csv_ready=true" >> $GITHUB_OUTPUT
+
+      - name: Format and post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          python3 - <<'EOF'
+          import csv, json, os, urllib.request, datetime
+
+          with open('/tmp/churn_cohort.csv') as f:
+              rows = list(csv.DictReader(f))
+
+          if not rows:
+              print("No rows returned — skipping Slack post.")
+              exit(0)
+
+          # Build monospace table header
+          cols = ['sale_date', 'Sales',
+                  'D0','D1','D2','D3','D4','D5','D6','D7',
+                  'D8','D9','D10','D11','D12','D13','D14','D15','Total']
+          header = f"{'Date':<12} {'Sales':>5}  " + "  ".join(f"{c:>3}" for c in cols[2:])
+          divider = "-" * len(header)
+          lines = [header, divider]
+
+          for r in rows:
+              date_str = r.get('sale_date','')
+              sales    = r.get('Sales','')
+              day_vals = [r.get(c,'-') or '-' for c in cols[2:]]
+              line = f"{date_str:<12} {sales:>5}  " + "  ".join(f"{v:>3}" for v in day_vals)
+              lines.append(line)
+
+          table = "\n".join(lines)
+          today = datetime.date.today().strftime('%d %b %Y')
+
+          payload = {
+              "text": f":bar_chart: *Sales to Churn Initiation — {today}*\n```\n{table}\n```\n_Values are % of that day's sales cohort whose churn was initiated on Day N_"
+          }
+
+          req = urllib.request.Request(
+              os.environ['SLACK_WEBHOOK_URL'],
+              data=json.dumps(payload).encode(),
+              headers={'Content-Type': 'application/json'}
+          )
+          urllib.request.urlopen(req)
+          print("Slack message sent.")
+          EOF
