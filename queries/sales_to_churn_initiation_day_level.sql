@@ -3,9 +3,9 @@
 --
 -- Churn initiation is the EARLIEST date any of these fire on a seller's ticket:
 --   1. Any task disposition IN ('asked_to_drop_the_lead', 'not_in_shopdeck_criteria', 'photoshoot_not_available')
---   2. A 'churn seller call back' task is created (triggered by 13+ unanswered calls)
+--   2. A 'churn_seller_callback' task is created (triggered by 13+ unanswered calls)
 --
--- Full churn (seller_wants_to_drop_out on a churn seller call back task) is a separate metric.
+-- Full churn (seller_wants_to_drop_out on a churn_seller_callback task) is a separate metric.
 
 WITH first_ticket AS (
   SELECT
@@ -31,12 +31,12 @@ churn_initiation_by_ticket AS (
     MIN(DATE(created_at, 'Asia/Kolkata')) AS churn_initiation_date
   FROM `blitzscale-prod-project.nushop.ob_tasks`
   WHERE (
-    disposition IN (
+    disposition_reasons IN (
       'asked_to_drop_the_lead',
       'not_in_shopdeck_criteria',
       'photoshoot_not_available'
     )
-    OR type = 'churn seller call back'
+    OR type = 'churn_seller_callback'
   )
   AND created_at >= TIMESTAMP('2026-05-01', 'Asia/Kolkata')
   AND created_at <  TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL 1 DAY))
