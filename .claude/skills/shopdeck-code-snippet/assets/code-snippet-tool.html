@@ -371,7 +371,7 @@
         <li><span class="mk">02</span><span>Every class carries your prefix. Nothing global is touched.</span></li>
         <li><span class="mk">03</span><span>Zero external scripts or stylesheets. Fonts come from stacks already on the device.</span></li>
         <li><span class="mk">04</span><span>Full-bleed via <code>width:100vw; margin-left:calc(50% - 50vw)</code> so the band escapes the theme container.</span></li>
-        <li><span class="mk">05</span><span>Mobile-first with one <code>min-width</code> breakpoint. No separate mobile blob.</span></li>
+        <li><span class="mk">05</span><span>One paste serves both widths — a <code>min-width</code> breakpoint or fluid <code>clamp()</code> sizing. There is no separate mobile blob.</span></li>
         <li><span class="mk">06</span><span><code>prefers-reduced-motion: reduce</code> kills the motion and leaves the content readable.</span></li>
         <li><span class="mk">07</span><span>Text is never parked at <code>opacity:0</code> waiting on an observer — a JS failure must show content, not a blank band.</span></li>
         <li><span class="mk">08</span><span>Guarded IIFE: <code>if (!root) return</code>, own root only, and a <code>data-</code> flag so a double paste can't double-bind.</span></li>
@@ -818,7 +818,7 @@
       "1. Self-contained. No external script, no \x3Clink> stylesheet, no @import, no Google Fonts, no CDN, no web font file. Use only the font stack given in the brief, verbatim.",
       "2. Prefix EVERY class name and EVERY CSS custom property with the prefix given in the brief. Every value of every class attribute. Not one unprefixed class anywhere.",
       "3. Full-bleed the outer section so it escapes the theme's container: width:100vw; margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw); plus overflow hidden where a child could push the page sideways.",
-      "4. Mobile-first CSS with at least one @media (min-width: ...) block for desktop. One blob serves both; no separate mobile version.",
+      "4. Mobile-first CSS that serves both widths from one paste - a @media (min-width: ...) block for desktop, or fluid clamp() sizing that needs no breakpoint. There is no separate mobile version.",
       "5. Include an @media (prefers-reduced-motion: reduce) block that switches off every transition and animation and leaves all content visible.",
       "6. Never park content at opacity:0. If you animate a reveal, the CSS default state must be visible; the script arms the pre-reveal state only for elements currently below the fold, then reveals them with IntersectionObserver. If the script fails, the section must still show its text - never a blank band.",
       "7. The script is one IIFE. It queries only its own root class, begins with that lookup and 'if (!root) return;', and sets a prefixed data- attribute flag on the root so a second paste of the same blob cannot bind twice.",
@@ -910,8 +910,8 @@
        "Snippets ship no CDN dependencies — fonts come from device stacks."],
       ["Full-bleed breakout present", blob.indexOf("100vw") > -1 && /50%\s*-\s*50vw/.test(blob),
        "Lets the band escape the theme's max-width container."],
-      ["Mobile and desktop in one blob", /@media[^{]*\(min-width:/.test(blob),
-       "Mobile-first base plus at least one min-width breakpoint."],
+      ["Adapts across mobile and desktop", /@media[^{]*\(min-width:/.test(blob) || /clamp\(/.test(blob),
+       "One paste serves both: either a min-width breakpoint or fluid clamp() sizing."],
       ["Honours prefers-reduced-motion", /prefers-reduced-motion/.test(blob),
        "Motion off, content still readable."],
       ["Nothing parked at opacity:0", !/opacity:\s*0\s*[;}]/.test(blob),
