@@ -87,4 +87,4 @@ The five repeat section types (editorial statement, marquee, story split, promis
 strip, lookbook grid) are also available as a shareable page a POC can drive without
 an agent: fill brand tokens, copy the blob, copy the handoff note.
 
-Builder: https://claude.ai/code/artifact/66309a59-1694-4380-aa80-1b5b179e384e
+Code Snippet Tool: https://claude.ai/code/artifact/66309a59-1694-4380-aa80-1b5b179e384e
