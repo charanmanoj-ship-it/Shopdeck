@@ -47,8 +47,11 @@ DEFAULT_MODELS = {
     "anthropic": os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest"),
     "openai": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
     "gemini": os.environ.get("GEMINI_MODEL", "gemini-1.5-flash"),
+    "ollama": os.environ.get("OLLAMA_MODEL", "llama3.2:1b"),
     "mock": "mock-1",
 }
+
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
 
 CHAT_SYSTEM = (
     "You are a helpful, concise personal assistant. Answer the user's questions "
@@ -73,14 +76,28 @@ class ProviderError(Exception):
     pass
 
 
+def ollama_available():
+    """True if a local Ollama server is reachable (no API key needed)."""
+    try:
+        return requests.get(f"{OLLAMA_HOST}/api/tags", timeout=2).status_code == 200
+    except requests.RequestException:
+        return False
+
+
 def detect_provider():
-    """Pick a provider based on which API key is present."""
+    """Pick a provider based on available keys, then a local Ollama server.
+
+    Order: explicit cloud API keys first, then a running local Ollama (free,
+    no key). Returns None if nothing usable is found.
+    """
     if os.environ.get("ANTHROPIC_API_KEY"):
         return "anthropic"
     if os.environ.get("OPENAI_API_KEY"):
         return "openai"
     if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
         return "gemini"
+    if ollama_available():
+        return "ollama"
     return None
 
 
@@ -98,6 +115,7 @@ class LLM:
             "anthropic": self._anthropic,
             "openai": self._openai,
             "gemini": self._gemini,
+            "ollama": self._ollama,
             "mock": self._mock,
         }.get(self.provider)
         if handler is None:
@@ -160,6 +178,24 @@ class LLM:
         self._raise_for_status(resp)
         cand = resp.json()["candidates"][0]
         return "".join(p.get("text", "") for p in cand["content"]["parts"]).strip()
+
+    def _ollama(self, system, messages):
+        """Local model via Ollama's chat API — no API key, runs on this machine."""
+        resp = requests.post(
+            f"{OLLAMA_HOST}/api/chat",
+            json={
+                "model": self.model,
+                "messages": [{"role": "system", "content": system}] + messages,
+                "stream": False,
+            },
+            timeout=self.timeout,
+        )
+        if resp.status_code >= 400:
+            raise ProviderError(
+                f"Ollama HTTP {resp.status_code}: {resp.text[:500]}\n"
+                f"Is the model pulled? Try: ollama pull {self.model}"
+            )
+        return resp.json()["message"]["content"].strip()
 
     def _mock(self, system, messages):
         """Offline stub so the tool is runnable without any API key."""
@@ -338,9 +374,10 @@ def main(argv=None):
     )
     parser.add_argument(
         "--provider",
-        choices=["auto", "anthropic", "openai", "gemini", "mock"],
+        choices=["auto", "anthropic", "openai", "gemini", "ollama", "mock"],
         default="auto",
-        help="LLM provider (default: auto-detect from available API key).",
+        help="LLM provider. 'auto' uses an API key if set, else a local Ollama "
+        "server if running. 'ollama' forces the local (no-key) model.",
     )
     parser.add_argument("--model", help="Override the model name.")
     parser.add_argument(
@@ -356,9 +393,13 @@ def main(argv=None):
         provider = detect_provider()
         if provider is None:
             print(
-                "No LLM API key found. Set one of ANTHROPIC_API_KEY, OPENAI_API_KEY, "
-                "or GEMINI_API_KEY — or run with --provider mock to try the interface "
-                "offline.",
+                "No usable LLM found. Options:\n"
+                "  * Run a local model (no API key, free):\n"
+                "      curl -fsSL https://ollama.com/install.sh | sh\n"
+                "      ollama serve &   &&   ollama pull llama3.2:1b\n"
+                "      python assistant.py --provider ollama\n"
+                "  * Or set an API key: ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY\n"
+                "  * Or try the interface offline with: --provider mock",
                 file=sys.stderr,
             )
             return 2

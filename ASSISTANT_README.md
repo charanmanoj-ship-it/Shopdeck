@@ -6,8 +6,28 @@ A command-line assistant you can ask questions and get replies. Two modes:
 - **data** — ask questions about the Shopdeck data; the assistant writes SQL,
   runs it against Metabase, and answers in plain English.
 
-The LLM provider is **auto-detected** from whichever API key is set, so you can
-use Anthropic, OpenAI, or Gemini without changing anything.
+The LLM provider is **auto-detected**: it uses a cloud API key if one is set
+(Anthropic, OpenAI, or Gemini), otherwise it falls back to a **local model** via
+Ollama — so you can run it with **no API key and no cost**.
+
+## Run with no API key (local model)
+
+One-time setup, then it just works — no keys, no bills:
+
+```bash
+bash setup_local_model.sh          # installs Ollama + pulls a small model
+python assistant.py                # auto-detects the local model
+# or explicitly:
+python assistant.py --provider ollama -q "What is a hash function?"
+```
+
+`setup_local_model.sh` installs Ollama, starts its server, and pulls
+`llama3.2:1b` (a ~1.3 GB model that runs on CPU). Pick a different model with
+`OLLAMA_MODEL=llama3.2:3b bash setup_local_model.sh` (bigger = better answers,
+slower on CPU). Smaller/faster option: `qwen2.5:0.5b`.
+
+Trade-off: a local 1B model is fast and free but less capable than a hosted
+frontier model. For the best quality, add a cloud API key (below).
 
 ## Setup
 
@@ -19,13 +39,17 @@ bash .cursor/install.sh
 source .venv/bin/activate
 ```
 
-Then provide **one** LLM API key:
+For higher-quality answers, provide **one** cloud LLM API key (optional if you
+use the local model above):
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."   # or
 export OPENAI_API_KEY="sk-..."          # or
-export GEMINI_API_KEY="..."
+export GEMINI_API_KEY="..."             # Gemini has a generous free tier
 ```
+
+Free/cheap options if you want a cloud model without much cost: Google Gemini's
+free-tier API key, or Groq's free API (OpenAI-compatible).
 
 ## Usage
 
@@ -82,7 +106,7 @@ It prints the generated SQL, the result rows, and a plain-English answer.
 
 | Flag            | Description                                             |
 |-----------------|---------------------------------------------------------|
-| `--provider`    | `auto` (default), `anthropic`, `openai`, `gemini`, `mock` |
+| `--provider`    | `auto` (default), `anthropic`, `openai`, `gemini`, `ollama` (local), `mock` |
 | `--model`       | Override the model name                                  |
 | `--data`        | Start in data mode                                       |
 | `-q, --question`| Ask one question and exit                               |
@@ -92,8 +116,9 @@ It prints the generated SQL, the result rows, and a plain-English answer.
 ## Model overrides
 
 Defaults can be changed per provider via env vars: `ANTHROPIC_MODEL`,
-`OPENAI_MODEL`, `GEMINI_MODEL`, or the global `--model` flag. If a default model
-name is rejected by the provider, pass `--model` with a current model name.
+`OPENAI_MODEL`, `GEMINI_MODEL`, `OLLAMA_MODEL`, or the global `--model` flag. If a
+default model name is rejected by the provider, pass `--model` with a current
+model name. For the local server, override the address with `OLLAMA_HOST`.
 
 ## Notes
 
