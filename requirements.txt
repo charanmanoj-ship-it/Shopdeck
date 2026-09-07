@@ -1,0 +1,13 @@
+# Python dependencies for the Shopdeck data-analytics scripts and reports.
+#
+# These cover the tools used across the repo's branches:
+#   - metabase_pull.py          -> requests
+#   - seller_journey_analyzer.py -> google-cloud-bigquery (+ db-dtypes for pandas)
+#   - Excel report generation    -> pandas, openpyxl
+#
+# Pin ranges keep installs reproducible while allowing patch updates.
+pandas>=2.2,<3.0
+openpyxl>=3.1,<4.0
+requests>=2.31,<3.0
+google-cloud-bigquery>=3.25,<4.0
+db-dtypes>=1.2,<2.0
