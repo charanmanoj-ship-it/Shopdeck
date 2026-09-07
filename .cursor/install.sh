@@ -11,6 +11,18 @@ cd "$(dirname "$0")/.."
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 VENV_DIR=".venv"
 
+# Ensure the stdlib venv module is usable. On Debian/Ubuntu the default image
+# may ship Python without ensurepip, in which case the python3-venv package is
+# required. Install it (best effort) only when venv creation would otherwise
+# fail, so this stays a no-op on images/snapshots that already have it.
+if ! "${PYTHON_BIN}" -c "import ensurepip" >/dev/null 2>&1; then
+  echo "python venv support missing; attempting to install python3-venv ..."
+  PY_MM="$("${PYTHON_BIN}" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+  if command -v sudo >/dev/null 2>&1; then APT="sudo apt-get"; else APT="apt-get"; fi
+  ${APT} update -qq || true
+  ${APT} install -y -qq "python${PY_MM}-venv" python3-pip || ${APT} install -y -qq python3-venv python3-pip || true
+fi
+
 if [ ! -x "${VENV_DIR}/bin/python" ]; then
   echo "Creating virtual environment in ${VENV_DIR} ..."
   "${PYTHON_BIN}" -m venv "${VENV_DIR}"
