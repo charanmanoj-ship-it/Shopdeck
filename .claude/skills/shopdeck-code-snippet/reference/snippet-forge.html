@@ -1,0 +1,1343 @@
+<title>Shopdeck Snippet Forge</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+  :root{
+    --paper:#F3F4F7; --surface:#FFFFFF; --surface-2:#E9ECF2; --surface-3:#DFE3EC;
+    --ink:#111623; --ink-soft:#39404F; --muted:#666E80; --line:#D5DAE4;
+    --indigo:#2F3C93; --indigo-ink:#FFFFFF; --indigo-wash:#E8EAF7;
+    --marigold:#C9860B; --marigold-wash:#FBF1DC;
+    --ok:#1B6F52; --crit:#A32C24;
+    --code-bg:#12161F; --code-ink:#D9DEEA; --code-line:#232B39;
+    --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+    --r:4px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0D1016; --surface:#151A23; --surface-2:#1D242F; --surface-3:#252E3B;
+      --ink:#E6E9F1; --ink-soft:#C3C9D6; --muted:#8C95A6; --line:#28303C;
+      --indigo:#94A0F5; --indigo-ink:#0D1016; --indigo-wash:#1B2140;
+      --marigold:#E0AB3E; --marigold-wash:#2A2213;
+      --ok:#4FBF95; --crit:#E8776C;
+      --code-bg:#0A0D13; --code-ink:#D3D9E6; --code-line:#1C2430;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0D1016; --surface:#151A23; --surface-2:#1D242F; --surface-3:#252E3B;
+    --ink:#E6E9F1; --ink-soft:#C3C9D6; --muted:#8C95A6; --line:#28303C;
+    --indigo:#94A0F5; --indigo-ink:#0D1016; --indigo-wash:#1B2140;
+    --marigold:#E0AB3E; --marigold-wash:#2A2213;
+    --ok:#4FBF95; --crit:#E8776C;
+    --code-bg:#0A0D13; --code-ink:#D3D9E6; --code-line:#1C2430;
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--indigo)}
+  button,select,input,textarea{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+  .wrap{max-width:1400px;margin:0 auto;padding:0 20px 72px}
+
+  /* ---------- masthead ---------- */
+  .masthead{border-bottom:1px solid var(--line);padding:26px 0 20px;display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between}
+  .brand{display:flex;flex-direction:column;gap:5px}
+  .kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(30px,5vw,44px);line-height:1;margin:0;letter-spacing:-.01em}
+  .tagline{color:var(--ink-soft);max-width:56ch;margin:2px 0 0}
+  .guard{display:flex;align-items:center;gap:9px;background:var(--marigold-wash);border:1px solid var(--marigold);border-radius:var(--r);padding:9px 13px;max-width:330px}
+  .guard b{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--marigold);display:block}
+  .guard span{font-size:12.5px;color:var(--ink-soft);display:block;line-height:1.4}
+
+  /* ---------- workbench ---------- */
+  .bench{display:grid;grid-template-columns:1fr;gap:22px;padding-top:22px}
+  @media (min-width:1000px){.bench{grid-template-columns:336px minmax(0,1fr);gap:26px;align-items:start}}
+
+  .rail{display:flex;flex-direction:column;gap:16px;min-width:0}
+  @media (min-width:1000px){.rail{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto;padding-right:4px;order:-1}}
+  .stage{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+  .panel__head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line)}
+  .panel__head h2{margin:0;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .panel__body{padding:14px}
+
+  /* section type picker: a list, not cards */
+  .types{list-style:none;margin:0;padding:0}
+  .types li+li{border-top:1px solid var(--line)}
+  .type{display:grid;grid-template-columns:auto 1fr;gap:11px;width:100%;text-align:left;background:none;border:0;padding:11px 14px;cursor:pointer;align-items:start}
+  .type:hover{background:var(--surface-2)}
+  .type[aria-pressed="true"]{background:var(--indigo-wash);box-shadow:inset 3px 0 0 var(--indigo)}
+  .type__glyph{width:30px;height:30px;border:1px solid var(--line);border-radius:2px;display:grid;place-items:center;background:var(--surface);flex:none}
+  .type[aria-pressed="true"] .type__glyph{border-color:var(--indigo)}
+  .type__glyph svg{display:block}
+  .type__name{font-weight:600;font-size:13px;letter-spacing:-.005em}
+  .type__desc{color:var(--muted);font-size:11.5px;line-height:1.4;margin-top:1px}
+
+  .fields{display:flex;flex-direction:column;gap:13px}
+  .field{display:flex;flex-direction:column;gap:5px;min-width:0}
+  .field > label{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+  .field .hint{font-size:11px;color:var(--muted);line-height:1.4}
+  input[type=text],textarea,select{background:var(--surface-2);border:1px solid var(--line);border-radius:2px;padding:8px 9px;width:100%;min-width:0}
+  textarea{font-family:var(--mono);font-size:12px;line-height:1.6;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+  .swatch{display:flex;flex-direction:column;gap:5px}
+  .swatch__pick{display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:2px;padding:5px 6px;min-width:0}
+  .swatch__pick input[type=color]{-webkit-appearance:none;appearance:none;width:21px;height:21px;padding:0;border:1px solid var(--line);border-radius:2px;background:none;cursor:pointer;flex:none}
+  .swatch__pick input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+  .swatch__pick input[type=color]::-webkit-color-swatch{border:0;border-radius:1px}
+  .swatch__pick input[type=text]{border:0;background:none;padding:0;font-family:var(--mono);font-size:11px;letter-spacing:0;min-width:0;width:100%}
+
+  /* ---------- preview stage ---------- */
+  .stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--line)}
+  .stagebar__label{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--ink-soft)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  .seg button{background:var(--surface);border:0;padding:5px 11px;cursor:pointer;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button[aria-pressed="true"]{background:var(--indigo);color:var(--indigo-ink)}
+  .frameHolder{background:var(--surface-2);padding:14px;display:flex;justify-content:center}
+  .frameHolder iframe{width:100%;max-width:100%;height:520px;border:1px solid var(--line);background:#fff;display:block;transition:max-width .25s ease}
+  .frameHolder[data-device="mobile"] iframe{max-width:390px}
+  .notice{padding:9px 12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+  .notice svg{flex:none;margin-top:2px}
+
+  /* ---------- output ---------- */
+  .tabs{display:flex;gap:0;border-bottom:1px solid var(--line);flex:1;min-width:0}
+  .tab{background:none;border:0;border-bottom:2px solid transparent;padding:11px 13px;cursor:pointer;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--indigo)}
+  .outhead{display:flex;align-items:stretch;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .outhead__actions{display:flex;align-items:center;gap:8px;padding:8px 12px}
+  .count{font-family:var(--mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .btn{background:var(--indigo);color:var(--indigo-ink);border:1px solid var(--indigo);border-radius:2px;padding:7px 14px;cursor:pointer;font-weight:600;font-size:12.5px;white-space:nowrap}
+  .btn:hover{filter:brightness(1.08)}
+  .btn--ghost{background:none;color:var(--ink);border-color:var(--line);font-weight:500}
+  .btn--ghost:hover{background:var(--surface-2);filter:none}
+  pre{margin:0;background:var(--code-bg);color:var(--code-ink);font-family:var(--mono);font-size:11.5px;line-height:1.65;padding:14px;overflow:auto;max-height:440px;white-space:pre;tab-size:2}
+  pre::selection,pre *::selection{background:#3A4A9E;color:#fff}
+  .handoff{padding:16px;font-size:13.5px;max-height:440px;overflow:auto}
+  .handoff h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;font-weight:500}
+  .handoff h3+*{margin-top:0}
+  .handoff section+section{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+  .handoff p{margin:0 0 7px}
+  .handoff code{font-family:var(--mono);font-size:12px;background:var(--surface-2);padding:1px 4px;border-radius:2px}
+  .handoff ol{margin:0;padding-left:20px}
+  .handoff li{margin-bottom:3px}
+
+  /* ---------- audit ---------- */
+  .audit{list-style:none;margin:0;padding:0;font-size:12.5px}
+  .audit li{display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:start;padding:8px 14px}
+  .audit li+li{border-top:1px solid var(--line)}
+  .chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;padding:2px 6px;border-radius:2px;border:1px solid;white-space:nowrap;margin-top:1px}
+  .chip--ok{color:var(--ok);border-color:var(--ok);background:transparent}
+  .chip--no{color:var(--crit);border-color:var(--crit);background:transparent}
+  .audit small{display:block;color:var(--muted);font-size:11px;line-height:1.4}
+
+  /* ---------- paste path ---------- */
+  .path{margin-top:34px;border-top:1px solid var(--line);padding-top:26px;display:grid;grid-template-columns:1fr;gap:26px}
+  @media (min-width:1000px){.path{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}}
+  .path h2{font-family:var(--serif);font-weight:400;font-size:26px;margin:0 0 3px;letter-spacing:-.01em}
+  .path .sub{color:var(--muted);margin:0 0 18px;font-size:13px}
+  .steps{list-style:none;margin:0;padding:0;counter-reset:s}
+  .steps li{counter-increment:s;display:grid;grid-template-columns:auto 1fr;gap:14px;padding:11px 0;border-top:1px dashed var(--line)}
+  .steps li:first-child{border-top:0}
+  .steps li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);font-size:11px;color:var(--indigo);padding-top:3px;font-variant-numeric:tabular-nums}
+  .steps b{font-weight:600}
+  .steps .where{font-family:var(--mono);font-size:11.5px;color:var(--muted);display:block;margin-top:2px}
+  .stop{background:var(--marigold-wash);border:1px solid var(--marigold);border-radius:var(--r);padding:13px 15px;margin-top:16px}
+  .stop b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--marigold);margin-bottom:4px}
+  .stop p{margin:0;font-size:12.5px;color:var(--ink-soft)}
+  .rules{list-style:none;margin:0;padding:0;font-size:12.5px}
+  .rules li{padding:9px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:auto 1fr;gap:10px}
+  .rules li:first-child{border-top:0}
+  .rules .mk{color:var(--indigo);font-family:var(--mono);font-size:12px;line-height:1.5}
+  .rules code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);padding:1px 4px;border-radius:2px}
+  footer{margin-top:34px;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:11.5px;display:flex;flex-wrap:wrap;gap:6px 18px}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<style>
+  /* mode switch */
+  .modes{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+  .modes button{flex:1;background:none;border:0;padding:10px 8px;cursor:pointer;font-family:var(--mono);font-size:10px;line-height:1.4;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;text-align:center}
+  .modes button+button{border-left:1px solid var(--line)}
+  .modes button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+  .modes button[disabled]{opacity:.45;cursor:not-allowed}
+  .modehint{font-size:11.5px;color:var(--muted);line-height:1.45;margin:0}
+
+  .goal{min-height:112px}
+  .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;filter:none}
+  .status{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.45;min-height:17px}
+  .status--wait{color:var(--indigo)}
+  .status--err{color:var(--crit)}
+  .status--ok{color:var(--ok)}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none;margin-top:5px}
+  .status--wait .dot{animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+  .cost{display:flex;gap:8px;align-items:flex-start;border-top:1px solid var(--line);margin-top:2px;padding-top:11px;font-size:11.5px;color:var(--muted);line-height:1.45}
+  .cost svg{flex:none;margin-top:2px;color:var(--indigo)}
+  .banner{display:none;gap:9px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--marigold);border-radius:var(--r);padding:11px 13px;font-size:12px;color:var(--ink-soft);line-height:1.5}
+  .banner[data-on="1"]{display:flex}
+  .streaming pre{border-bottom:2px solid var(--indigo)}
+  .source{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border:1px solid var(--line);border-radius:2px;color:var(--muted);white-space:nowrap}
+  .source[data-src="claude"]{color:var(--indigo);border-color:var(--indigo)}
+  details.fold{border-top:1px solid var(--line);padding-top:12px}
+  details.fold summary{cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);list-style:none}
+  details.fold summary::-webkit-details-marker{display:none}
+  details.fold summary::before{content:"+ ";color:var(--indigo)}
+  details.fold[open] summary::before{content:"– "}
+  details.fold > *:not(summary){margin-top:11px}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <span class="kicker">Shopdeck · code_snippet_widget</span>
+      <h1>Snippet Forge</h1>
+      <p class="tagline">Describe the homepage section you want, and Claude writes the paste-ready HTML + CSS + JS against Shopdeck's snippet rules. Preview it, audit it, hand it to the POC.</p>
+    </div>
+    <div class="guard">
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8.25" stroke="currentColor" stroke-width="1.5" style="color:var(--marigold)"/><path d="M10 6v5.5M10 13.6v.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="color:var(--marigold)"/></svg>
+      <div><b>The POC pastes and publishes</b><span>This page only writes code. Nobody here logs in as a seller or clicks Publish.</span></div>
+    </div>
+  </header>
+
+  <div class="bench">
+    <!-- ================= CONTROL RAIL ================= -->
+    <div class="rail">
+      <div class="modes" role="group" aria-label="How to build the section">
+        <button type="button" data-mode="ai" aria-pressed="true" id="mode-ai">Brief &rarr; Claude</button>
+        <button type="button" data-mode="tpl" aria-pressed="false" id="mode-tpl">Fixed template</button>
+      </div>
+      <div class="banner" id="banner"></div>
+
+      <!-- ---- AI MODE ---- -->
+      <div class="panel" id="panel-ai">
+        <div class="panel__head"><h2>The brief</h2></div>
+        <div class="panel__body fields">
+          <div class="field">
+            <label for="f-goal">What should this section do?</label>
+            <textarea id="f-goal" class="goal" rows="6"></textarea>
+            <span class="hint">Say it the way you'd say it to a designer: the message, the mood, roughly what's in it. Name the copy and image URLs if you have them; anything you leave out comes back as an obvious placeholder.</span>
+          </div>
+          <div class="field">
+            <label for="f-shape">Starting shape</label>
+            <select id="f-shape"></select>
+            <span class="hint">A hint, not a cage. “Let Claude choose” lets it pick the layout from your brief.</span>
+          </div>
+          <div class="actions">
+            <button class="btn" type="button" id="btn-gen">Generate section</button>
+            <button class="btn btn--ghost" type="button" id="btn-stop" hidden>Stop</button>
+          </div>
+          <p class="status" id="status"></p>
+          <details class="fold" id="fold-refine">
+            <summary>Refine what came back</summary>
+            <div class="field">
+              <label for="f-refine">Change request</label>
+              <textarea id="f-refine" rows="3" placeholder="Make the headline smaller on mobile and drop the link."></textarea>
+              <span class="hint">Claude sees the current blob and your change, and rewrites the whole thing.</span>
+            </div>
+            <div class="actions">
+              <button class="btn btn--ghost" type="button" id="btn-refine">Apply change</button>
+              <button class="btn btn--ghost" type="button" id="btn-fix" hidden>Fix audit failures</button>
+            </div>
+          </details>
+          <p class="cost">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8.25" stroke="currentColor" stroke-width="1.4"/><path d="M10 9v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="6.4" r="1" fill="currentColor"/></svg>
+            <span>Generating runs on <b>your own</b> Claude account — your usage, not the page owner's. Your browser asks you the first time. Nothing you type here is sent anywhere else, and the page keeps no record of it.</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- ---- TEMPLATE MODE ---- -->
+      <div class="panel" id="panel-types" hidden>
+        <div class="panel__head"><h2>Section type</h2></div>
+        <ul class="types" id="types"></ul>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Widget &amp; brand tokens</h2></div>
+        <div class="panel__body fields">
+          <div class="field">
+            <label for="f-widget">Widget row name</label>
+            <input type="text" id="f-widget" data-k="widgetName">
+            <span class="hint">Shown on the Home page widget list. ALL-CAPS matches the storefront section title.</span>
+          </div>
+          <div class="field">
+            <label for="f-prefix">CSS class prefix</label>
+            <input type="text" id="f-prefix" data-k="prefix">
+            <span class="hint">Every class and custom property carries this, so the theme's CSS can't collide with it.</span>
+          </div>
+          <div class="swatches">
+            <div class="swatch">
+              <span style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)">Ground</span>
+              <span class="swatch__pick"><input type="color" id="f-paper" data-color="paper" aria-label="Ground colour picker"><input type="text" data-k="paper" aria-label="Ground hex"></span></div>
+            <div class="swatch">
+              <span style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)">Ink</span>
+              <span class="swatch__pick"><input type="color" id="f-ink" data-color="ink" aria-label="Ink colour picker"><input type="text" data-k="ink" aria-label="Ink hex"></span></div>
+            <div class="swatch">
+              <span style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)">Accent</span>
+              <span class="swatch__pick"><input type="color" id="f-accent" data-color="accent" aria-label="Accent colour picker"><input type="text" data-k="accent" aria-label="Accent hex"></span></div>
+          </div>
+          <div class="field">
+            <label for="f-type">Type feel</label>
+            <select id="f-type" data-k="typeFeel">
+              <option value="serif">Editorial serif (Georgia / Times stack)</option>
+              <option value="sans">Modern sans (system stack)</option>
+              <option value="inherit">Inherit the store theme's font</option>
+            </select>
+            <span class="hint">Never a Google Fonts link — Shopdeck snippets ship no external stylesheets.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-content" hidden>
+        <div class="panel__head"><h2>Content</h2></div>
+        <div class="panel__body fields" id="content-fields"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Rule audit</h2><span class="count" id="audit-score"></span></div>
+        <ul class="audit" id="audit"></ul>
+      </div>
+    </div>
+
+    <!-- ================= STAGE ================= -->
+    <div class="stage">
+      <div class="panel">
+        <div class="stagebar">
+          <span class="stagebar__label" id="stage-label">Live preview</span>
+          <span style="display:flex;gap:9px;align-items:center">
+            <span class="source" id="source" data-src="tpl">Template</span>
+            <span class="seg" role="group" aria-label="Preview width">
+              <button type="button" data-device="mobile" aria-pressed="false">Mobile 390</button>
+              <button type="button" data-device="desktop" aria-pressed="true">Desktop</button>
+            </span>
+          </span>
+        </div>
+        <div class="frameHolder" id="frameHolder" data-device="desktop">
+          <iframe id="preview" title="Section preview" sandbox="allow-scripts"></iframe>
+        </div>
+        <p class="notice">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.75" y="3.75" width="14.5" height="12.5" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 13l4-4 3.5 3.5L13 10l4 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="7.25" cy="7.5" r="1.15" fill="currentColor"/></svg>
+          <span>Seller image URLs can't load inside this page (its content policy blocks external images), so they draw as labelled placeholders. They render normally on the storefront — the POC's <b>Preview</b> step is where real images get checked.</span>
+        </p>
+      </div>
+
+      <div class="panel" id="outpanel">
+        <div class="outhead">
+          <div class="tabs" role="tablist">
+            <button class="tab" role="tab" id="tab-code" aria-selected="true" aria-controls="pane-code">Paste blob</button>
+            <button class="tab" role="tab" id="tab-note" aria-selected="false" aria-controls="pane-note">Handoff note</button>
+          </div>
+          <div class="outhead__actions">
+            <span class="count" id="size"></span>
+            <button class="btn btn--ghost" type="button" id="btn-select">Select all</button>
+            <button class="btn" type="button" id="btn-copy">Copy</button>
+          </div>
+        </div>
+        <pre id="pane-code" role="tabpanel" aria-labelledby="tab-code" tabindex="0"></pre>
+        <div class="handoff" id="pane-note" role="tabpanel" aria-labelledby="tab-note" hidden></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PASTE PATH ================= -->
+  <div class="path">
+    <div>
+      <h2>Where the POC pastes this</h2>
+      <p class="sub">Signed-in Chrome at pro.shopdeck.com. The order matters — steps 1–3 set the seller context that step 4 depends on.</p>
+      <ol class="steps">
+        <li><div><b>Sellers → Sellers List</b><span class="where">pro.shopdeck.com</span></div></li>
+        <li><div><b>Set the search filter to “Seller Id”</b>, enter the seller id, find the row<span class="where">The filter dropdown, not the free-text box</span></div></li>
+        <li><div><b>Log in as Seller</b> — a banner confirms who you're acting as<span class="where">Row action</span></div></li>
+        <li><div><b>Website → Website Pages → Home</b><span class="where">/website/website-pages/home</span></div></li>
+        <li><div><b>Find a row of type <code>code_snippet_widget</code></b>, or <b>+ Add Widget</b> and choose that type<span class="where">Match live sections to rows by title</span></div></li>
+        <li><div><b>Edit &gt;</b> on the row → paste the whole blob into the code field → save in the editor<span class="where">Paste all three parts: markup, style, script</span></div></li>
+        <li><div><b>Preview</b>, then <b>Publish</b> when the POC is satisfied<span class="where">Propagation can take up to ~2 hours</span></div></li>
+      </ol>
+      <div class="stop">
+        <b>Not your call</b>
+        <p>Logging in as a seller to change production needs the POC's explicit go-ahead. Publish is always theirs. And nothing generated here has been tested against this seller's live theme CSS — prefixing reduces collisions, it doesn't prove there are none.</p>
+      </div>
+    </div>
+    <div>
+      <h2>What the audit checks</h2>
+      <p class="sub">Templates satisfy these by construction. Claude is told the same rules, and the audit re-checks its output — treat a red row as a real defect, not a formality.</p>
+      <ul class="rules">
+        <li><span class="mk">01</span><span>Markup, then <code>&lt;style&gt;</code>, then <code>&lt;script&gt;</code> — one self-contained paste, in that order.</span></li>
+        <li><span class="mk">02</span><span>Every class carries your prefix. Nothing global is touched.</span></li>
+        <li><span class="mk">03</span><span>Zero external scripts or stylesheets. Fonts come from stacks already on the device.</span></li>
+        <li><span class="mk">04</span><span>Full-bleed via <code>width:100vw; margin-left:calc(50% - 50vw)</code> so the band escapes the theme container.</span></li>
+        <li><span class="mk">05</span><span>Mobile-first with one <code>min-width</code> breakpoint. No separate mobile blob.</span></li>
+        <li><span class="mk">06</span><span><code>prefers-reduced-motion: reduce</code> kills the motion and leaves the content readable.</span></li>
+        <li><span class="mk">07</span><span>Text is never parked at <code>opacity:0</code> waiting on an observer — a JS failure must show content, not a blank band.</span></li>
+        <li><span class="mk">08</span><span>Guarded IIFE: <code>if (!root) return</code>, own root only, and a <code>data-</code> flag so a double paste can't double-bind.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <span>Shopdeck Snippet Forge</span>
+    <span>Generates <code style="font-family:var(--mono)">code_snippet_widget</code> payloads only</span>
+    <span>Claude calls run on the viewer's own account</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- helpers ---------------- */
+  var esc = function(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); };
+  var lines = function(s){ return String(s||"").split("\n").map(function(l){return l.trim();}).filter(Boolean); };
+  var parts = function(l){ return l.split("|").map(function(p){return p.trim();}); };
+  var slug = function(s){ var v = String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); return v || "sd"; };
+  var FONTS = {
+    serif: 'Georgia, "Times New Roman", Times, serif',
+    sans: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    inherit: "inherit"
+  };
+
+  /* ---------------- shared snippet fragments ---------------- */
+  function bleed(){ return "width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);"; }
+
+  function revealCss(p, root){
+    return [
+      "." + p + "reveal{transition:opacity .75s ease,transform .75s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--" + p + "i, 0) * 90ms)}",
+      "." + root + "[data-" + p + "anim=\"armed\"] ." + p + "reveal{opacity:.001;transform:translateY(16px)}",
+      "." + root + " ." + p + "reveal." + p + "is-active{opacity:1;transform:none}",
+      "@media (prefers-reduced-motion: reduce){." + root + " ." + p + "reveal{opacity:1 !important;transform:none !important;transition:none !important}}"
+    ].join("\n");
+  }
+
+  function revealJs(p, root){
+    return [
+      "(function(){",
+      "  var root = document.querySelector('." + root + "');",
+      "  if (!root) return;",
+      "  if (root.getAttribute('data-" + p + "ready') === '1') return;   /* paste twice, bind once */",
+      "  root.setAttribute('data-" + p + "ready', '1');",
+      "",
+      "  var items = root.querySelectorAll('." + p + "reveal');",
+      "  if (!items.length) return;",
+      "",
+      "  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;",
+      "  var show = function(el){ el.classList.add('" + p + "is-active'); };",
+      "",
+      "  if (reduce || !('IntersectionObserver' in window)) {",
+      "    for (var i = 0; i < items.length; i++) show(items[i]);",
+      "    return;",
+      "  }",
+      "",
+      "  /* Arm only what is below the fold, so nothing above it ever flashes blank. */",
+      "  var pending = [];",
+      "  for (var j = 0; j < items.length; j++) {",
+      "    var el = items[j];",
+      "    el.style.setProperty('--" + p + "i', String(j % 6));",
+      "    if (el.getBoundingClientRect().top < window.innerHeight * 0.9) show(el);",
+      "    else pending.push(el);",
+      "  }",
+      "  if (!pending.length) return;",
+      "  root.setAttribute('data-" + p + "anim', 'armed');",
+      "",
+      "  var io = new IntersectionObserver(function(entries){",
+      "    entries.forEach(function(entry){",
+      "      if (!entry.isIntersecting) return;",
+      "      show(entry.target);",
+      "      io.unobserve(entry.target);",
+      "    });",
+      "  }, { threshold: 0.18, rootMargin: '0px 0px -8% 0px' });",
+      "",
+      "  pending.forEach(function(el){ io.observe(el); });",
+      "})();"
+    ].join("\n");
+  }
+
+  function imgTag(p, url, alt, cls){
+    return '<img class="' + p + cls + '" src="' + esc(url) + '" alt="' + esc(alt) + '" loading="lazy" decoding="async">';
+  }
+
+  /* ---------------- templates ---------------- */
+  var TEMPLATES = {
+    statement: {
+      name: "Editorial statement",
+      desc: "One oversized line, hairline rule, staggered reveal. The WEAR THE SLOWER SIDE shape.",
+      glyph: '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 5.5h14M3 9.5h9M3 13.5h14M3 16.5h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+      fields: ["eyebrow","headline","body","ctaLabel","ctaHref"],
+      preview: function(t){ return "A full-bleed band on " + t.paper + ". The eyebrow sits in small tracked caps, then the headline breaks across two or three lines at roughly 6rem on desktop and 2.6rem on mobile, a " + t.accent + " hairline under it, body copy held to about 46 characters, and an underlined link. Everything rises 16px into place as the band enters view — and is already legible if it is the first thing on screen."; },
+      build: function(t){
+        var p = t.prefix, r = p + "statement", f = FONTS[t.typeFeel];
+        var html = [
+          '<section class="' + r + '" aria-labelledby="' + p + 'statement-title">',
+          '  <div class="' + p + 'statement__inner">',
+          t.eyebrow ? '    <p class="' + p + 'statement__eyebrow ' + p + 'reveal">' + esc(t.eyebrow) + '</p>' : '',
+          '    <h2 class="' + p + 'statement__title ' + p + 'reveal" id="' + p + 'statement-title">' + esc(t.headline) + '</h2>',
+          '    <span class="' + p + 'statement__rule ' + p + 'reveal" aria-hidden="true"></span>',
+          t.body ? '    <p class="' + p + 'statement__body ' + p + 'reveal">' + esc(t.body) + '</p>' : '',
+          t.ctaLabel ? '    <a class="' + p + 'statement__cta ' + p + 'reveal" href="' + esc(t.ctaHref || "#") + '">' + esc(t.ctaLabel) + '</a>' : '',
+          '  </div>',
+          '</section>'
+        ].filter(Boolean).join("\n");
+
+        var css = [
+          "." + r + "{" + bleed() + "background:" + t.paper + ";color:" + t.ink + ";font-family:" + f + ";padding:clamp(56px,13vw,132px) 20px;overflow:hidden}",
+          "." + r + "__inner{max-width:1040px;margin:0 auto}",
+          "." + p + "statement__eyebrow{margin:0 0 clamp(18px,4vw,30px);font-size:11px;letter-spacing:.24em;text-transform:uppercase;opacity:.62}",
+          "." + p + "statement__title{margin:0;font-weight:400;font-size:clamp(2.5rem,8.4vw,6rem);line-height:.98;letter-spacing:-.025em;text-wrap:balance;max-width:20ch}",
+          "." + p + "statement__rule{display:block;width:clamp(64px,12vw,132px);height:1px;background:" + t.accent + ";margin:clamp(26px,5vw,44px) 0}",
+          "." + p + "statement__body{margin:0;font-size:clamp(.95rem,1.5vw,1.0625rem);line-height:1.72;max-width:46ch;opacity:.78}",
+          "." + p + "statement__cta{display:inline-block;margin-top:clamp(22px,4vw,34px);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:" + t.accent + ";text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1px}",
+          "." + p + "statement__cta:hover{text-underline-offset:9px}",
+          revealCss(p, r)
+        ].join("\n");
+
+        return { html: html, css: css, js: revealJs(p, r) };
+      }
+    },
+
+    marquee: {
+      name: "Marquee strip",
+      desc: "Seamless scrolling announcement band. Pauses on hover, static when motion is reduced.",
+      glyph: '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M2 10h13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12.5 6.5 16 10l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      fields: ["items","speed"],
+      preview: function(t){ return "A thin band, " + t.ink + " on " + t.accent + ", running " + lines(t.items).length + " phrases right-to-left in a seamless loop at " + (t.speed || 28) + "s per pass, separated by a small diamond. It pauses when a cursor rests on it. With reduced motion on it becomes a centred static row and wraps on narrow screens."; },
+      build: function(t){
+        var p = t.prefix, r = p + "marquee", f = FONTS[t.typeFeel];
+        var its = lines(t.items);
+        var cell = its.map(function(s){
+          return '<span class="' + p + 'marquee__item">' + esc(s) + '<span class="' + p + 'marquee__dot" aria-hidden="true">&#9670;</span></span>';
+        }).join("\n      ");
+
+        var html = [
+          '<section class="' + r + '" aria-label="Store announcements">',
+          '  <div class="' + p + 'marquee__viewport">',
+          '    <div class="' + p + 'marquee__track">',
+          '      ' + cell,
+          '    </div>',
+          '    <div class="' + p + 'marquee__track" aria-hidden="true">',
+          '      ' + cell,
+          '    </div>',
+          '  </div>',
+          '</section>'
+        ].join("\n");
+
+        var css = [
+          "." + r + "{" + bleed() + "background:" + t.accent + ";color:" + t.ink + ";font-family:" + f + ";padding:13px 0;overflow:hidden}",
+          "." + p + "marquee__viewport{display:flex;width:max-content}",
+          "." + p + "marquee__track{display:flex;align-items:center;flex:none;animation:" + p + "marquee-scroll " + (t.speed || 28) + "s linear infinite}",
+          "." + r + ":hover ." + p + "marquee__track{animation-play-state:paused}",
+          "." + p + "marquee__item{display:inline-flex;align-items:center;gap:clamp(20px,4vw,38px);padding-right:clamp(20px,4vw,38px);font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;white-space:nowrap}",
+          "." + p + "marquee__dot{font-size:7px;opacity:.5;transform:translateY(-1px)}",
+          "@keyframes " + p + "marquee-scroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}",
+          "@media (prefers-reduced-motion: reduce){",
+          "  ." + p + "marquee__viewport{width:100%;flex-wrap:wrap;justify-content:center}",
+          "  ." + p + "marquee__track{animation:none;flex-wrap:wrap;justify-content:center;row-gap:6px}",
+          "  ." + p + "marquee__viewport > ." + p + "marquee__track:last-child{display:none}",
+          "  ." + p + "marquee__item{white-space:normal}",
+          "}"
+        ].join("\n");
+
+        var js = [
+          "(function(){",
+          "  var root = document.querySelector('." + r + "');",
+          "  if (!root) return;",
+          "  if (root.getAttribute('data-" + p + "ready') === '1') return;",
+          "  root.setAttribute('data-" + p + "ready', '1');",
+          "",
+          "  /* Pause the loop while the band is off screen — no repaint cost on long pages. */",
+          "  if (!('IntersectionObserver' in window)) return;",
+          "  var tracks = root.querySelectorAll('." + p + "marquee__track');",
+          "  var io = new IntersectionObserver(function(entries){",
+          "    var on = entries[0] && entries[0].isIntersecting;",
+          "    for (var i = 0; i < tracks.length; i++) {",
+          "      tracks[i].style.animationPlayState = on ? 'running' : 'paused';",
+          "    }",
+          "  }, { threshold: 0 });",
+          "  io.observe(root);",
+          "})();"
+        ].join("\n");
+
+        return { html: html, css: css, js: js };
+      }
+    },
+
+    story: {
+      name: "Story split",
+      desc: "Image beside a block of narrative copy. For fabric, craft or founder stories.",
+      glyph: '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="3.5" width="6.5" height="13" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M12 6h5.5M12 9.5h5.5M12 13h3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+      fields: ["eyebrow","headline","body","images","ctaLabel","ctaHref","flip"],
+      preview: function(t){ return "Two columns on desktop — a 4:5 image on the " + (t.flip === "yes" ? "right" : "left") + ", copy on the other side, vertically centred; a single stacked column on mobile with the image first. Ground " + t.paper + ", eyebrow and link in " + t.accent + ". The copy column rises into view; the image holds still."; },
+      build: function(t){
+        var p = t.prefix, r = p + "story", f = FONTS[t.typeFeel];
+        var im = parts(lines(t.images)[0] || "");
+        var html = [
+          '<section class="' + r + (t.flip === "yes" ? " " + p + "story--flip" : "") + '" aria-labelledby="' + p + 'story-title">',
+          '  <figure class="' + p + 'story__media">',
+          '    ' + imgTag(p, im[0] || "REPLACE-story.jpg", im[1] || "", "story__img"),
+          im[1] ? '    <figcaption class="' + p + 'story__caption">' + esc(im[1]) + '</figcaption>' : '',
+          '  </figure>',
+          '  <div class="' + p + 'story__copy">',
+          t.eyebrow ? '    <p class="' + p + 'story__eyebrow ' + p + 'reveal">' + esc(t.eyebrow) + '</p>' : '',
+          '    <h2 class="' + p + 'story__title ' + p + 'reveal" id="' + p + 'story-title">' + esc(t.headline) + '</h2>',
+          t.body ? '    <p class="' + p + 'story__body ' + p + 'reveal">' + esc(t.body) + '</p>' : '',
+          t.ctaLabel ? '    <a class="' + p + 'story__cta ' + p + 'reveal" href="' + esc(t.ctaHref || "#") + '">' + esc(t.ctaLabel) + '</a>' : '',
+          '  </div>',
+          '</section>'
+        ].filter(Boolean).join("\n");
+
+        var css = [
+          "." + r + "{" + bleed() + "background:" + t.paper + ";color:" + t.ink + ";font-family:" + f + ";display:grid;grid-template-columns:1fr;gap:clamp(22px,5vw,54px);align-items:center;padding:clamp(40px,8vw,90px) 20px}",
+          "." + p + "story__media{margin:0;min-width:0}",
+          "." + p + "story__img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;background:rgba(0,0,0,.06)}",
+          "." + p + "story__caption{margin-top:10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.55}",
+          "." + p + "story__copy{min-width:0;max-width:52ch}",
+          "." + p + "story__eyebrow{margin:0 0 14px;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:" + t.accent + "}",
+          "." + p + "story__title{margin:0 0 16px;font-weight:400;font-size:clamp(1.75rem,4.4vw,2.9rem);line-height:1.08;letter-spacing:-.02em;text-wrap:balance}",
+          "." + p + "story__body{margin:0;font-size:clamp(.9375rem,1.4vw,1.0625rem);line-height:1.78;opacity:.8}",
+          "." + p + "story__cta{display:inline-block;margin-top:24px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:" + t.accent + ";text-decoration:underline;text-underline-offset:6px}",
+          "@media (min-width:820px){",
+          "  ." + r + "{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding-left:clamp(24px,6vw,88px);padding-right:clamp(24px,6vw,88px)}",
+          "  ." + p + "story--flip ." + p + "story__media{order:2}",
+          "  ." + p + "story--flip ." + p + "story__copy{order:1;justify-self:end}",
+          "}",
+          revealCss(p, r)
+        ].join("\n");
+
+        return { html: html, css: css, js: revealJs(p, r) };
+      }
+    },
+
+    promise: {
+      name: "Promise strip",
+      desc: "Three or four short trust claims in a row, divided by hairlines. No numbering — they aren't a sequence.",
+      glyph: '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M4 3.5v13M10 3.5v13M16 3.5v13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+      fields: ["eyebrow","items"],
+      preview: function(t){ var n = lines(t.items).length; return "A quiet band of " + n + " claims. Stacked with dashed dividers on mobile, side by side in " + n + " equal columns on desktop with 1px vertical rules between them. Each claim leads with a small " + t.accent + " diamond, a short bold label, then one line of detail. Reveals as a group, staggered left to right."; },
+      build: function(t){
+        var p = t.prefix, r = p + "promise", f = FONTS[t.typeFeel];
+        var its = lines(t.items).map(parts);
+        var cols = Math.max(1, Math.min(4, its.length));
+        var html = [
+          '<section class="' + r + '" aria-label="' + esc(t.eyebrow || "Why buy from us") + '">',
+          t.eyebrow ? '  <p class="' + p + 'promise__eyebrow ' + p + 'reveal">' + esc(t.eyebrow) + '</p>' : '',
+          '  <ul class="' + p + 'promise__list">',
+          its.map(function(it){
+            return [
+              '    <li class="' + p + 'promise__item ' + p + 'reveal">',
+              '      <span class="' + p + 'promise__mark" aria-hidden="true">&#9670;</span>',
+              '      <span class="' + p + 'promise__label">' + esc(it[0] || "") + '</span>',
+              it[1] ? '      <span class="' + p + 'promise__detail">' + esc(it[1]) + '</span>' : '',
+              '    </li>'
+            ].filter(Boolean).join("\n");
+          }).join("\n"),
+          '  </ul>',
+          '</section>'
+        ].filter(Boolean).join("\n");
+
+        var css = [
+          "." + r + "{" + bleed() + "background:" + t.paper + ";color:" + t.ink + ";font-family:" + f + ";padding:clamp(34px,6vw,64px) 20px}",
+          "." + p + "promise__eyebrow{margin:0 auto clamp(22px,4vw,38px);max-width:1120px;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.6;text-align:center}",
+          "." + p + "promise__list{list-style:none;margin:0 auto;padding:0;max-width:1120px;display:grid;grid-template-columns:1fr;gap:0}",
+          "." + p + "promise__item{display:grid;grid-template-columns:auto 1fr;grid-template-areas:'mark label' '. detail';column-gap:11px;row-gap:4px;padding:16px 0;border-top:1px dashed rgba(0,0,0,.14)}",
+          "." + p + "promise__list > ." + p + "promise__item:first-child{border-top:0}",
+          "." + p + "promise__mark{grid-area:mark;color:" + t.accent + ";font-size:8px;line-height:1.9}",
+          "." + p + "promise__label{grid-area:label;font-size:13px;font-weight:600;letter-spacing:.01em}",
+          "." + p + "promise__detail{grid-area:detail;font-size:12.5px;line-height:1.6;opacity:.7;max-width:34ch}",
+          "@media (min-width:760px){",
+          "  ." + p + "promise__list{grid-template-columns:repeat(" + cols + ",minmax(0,1fr))}",
+          "  ." + p + "promise__item{padding:4px clamp(16px,3vw,30px);border-top:0;border-left:1px solid rgba(0,0,0,.13)}",
+          "  ." + p + "promise__list > ." + p + "promise__item:first-child{border-left:0;padding-left:0}",
+          "}",
+          revealCss(p, r)
+        ].join("\n");
+
+        return { html: html, css: css, js: revealJs(p, r) };
+      }
+    },
+
+    lookbook: {
+      name: "Lookbook grid",
+      desc: "Image tiles with captions. Two up on mobile, four across on desktop, slow zoom on hover.",
+      glyph: '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="2.5" width="6" height="6" rx=".8" stroke="currentColor" stroke-width="1.5"/><rect x="11.5" y="2.5" width="6" height="6" rx=".8" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="11.5" width="6" height="6" rx=".8" stroke="currentColor" stroke-width="1.5"/><rect x="11.5" y="11.5" width="6" height="6" rx=".8" stroke="currentColor" stroke-width="1.5"/></svg>',
+      fields: ["eyebrow","headline","images","ctaLabel","ctaHref"],
+      preview: function(t){ var n = lines(t.images).length; return "A centred heading over " + n + " portrait tiles at 3:4 — two per row on mobile, four across from 900px. Captions sit under each tile in small tracked caps; hovering scales the image 3% behind a fixed frame, so the grid never shifts. Tiles fade up in pairs as the row enters view."; },
+      build: function(t){
+        var p = t.prefix, r = p + "lookbook", f = FONTS[t.typeFeel];
+        var its = lines(t.images).map(parts);
+        var html = [
+          '<section class="' + r + '" aria-labelledby="' + p + 'lookbook-title">',
+          '  <header class="' + p + 'lookbook__head">',
+          t.eyebrow ? '    <p class="' + p + 'lookbook__eyebrow ' + p + 'reveal">' + esc(t.eyebrow) + '</p>' : '',
+          '    <h2 class="' + p + 'lookbook__title ' + p + 'reveal" id="' + p + 'lookbook-title">' + esc(t.headline) + '</h2>',
+          '  </header>',
+          '  <div class="' + p + 'lookbook__grid">',
+          its.map(function(it){
+            return [
+              '    <figure class="' + p + 'lookbook__tile ' + p + 'reveal">',
+              '      <span class="' + p + 'lookbook__frame">',
+              '        ' + imgTag(p, it[0] || "REPLACE-look.jpg", it[1] || "", "lookbook__img"),
+              '      </span>',
+              it[1] ? '      <figcaption class="' + p + 'lookbook__caption">' + esc(it[1]) + '</figcaption>' : '',
+              '    </figure>'
+            ].filter(Boolean).join("\n");
+          }).join("\n"),
+          '  </div>',
+          t.ctaLabel ? '  <a class="' + p + 'lookbook__cta ' + p + 'reveal" href="' + esc(t.ctaHref || "#") + '">' + esc(t.ctaLabel) + '</a>' : '',
+          '</section>'
+        ].filter(Boolean).join("\n");
+
+        var css = [
+          "." + r + "{" + bleed() + "background:" + t.paper + ";color:" + t.ink + ";font-family:" + f + ";padding:clamp(44px,8vw,86px) 16px;text-align:center}",
+          "." + p + "lookbook__head{max-width:640px;margin:0 auto clamp(26px,5vw,44px)}",
+          "." + p + "lookbook__eyebrow{margin:0 0 10px;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:" + t.accent + "}",
+          "." + p + "lookbook__title{margin:0;font-weight:400;font-size:clamp(1.6rem,4vw,2.5rem);line-height:1.12;letter-spacing:-.02em;text-wrap:balance}",
+          "." + p + "lookbook__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(10px,2vw,20px);max-width:1240px;margin:0 auto}",
+          "." + p + "lookbook__tile{margin:0;min-width:0;text-align:left}",
+          "." + p + "lookbook__frame{display:block;overflow:hidden;background:rgba(0,0,0,.06)}",
+          "." + p + "lookbook__img{display:block;width:100%;height:auto;aspect-ratio:3/4;object-fit:cover;transition:transform .8s cubic-bezier(.2,.7,.2,1)}",
+          "." + p + "lookbook__tile:hover ." + p + "lookbook__img{transform:scale(1.03)}",
+          "." + p + "lookbook__caption{margin-top:9px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;opacity:.62}",
+          "." + p + "lookbook__cta{display:inline-block;margin-top:clamp(26px,5vw,42px);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:" + t.accent + ";text-decoration:underline;text-underline-offset:6px}",
+          "@media (min-width:900px){." + p + "lookbook__grid{grid-template-columns:repeat(4,minmax(0,1fr))}}",
+          "@media (prefers-reduced-motion: reduce){." + p + "lookbook__img{transition:none}." + p + "lookbook__tile:hover ." + p + "lookbook__img{transform:none}}",
+          revealCss(p, r)
+        ].join("\n");
+
+        return { html: html, css: css, js: revealJs(p, r) };
+      }
+    }
+  };
+
+  /* ---------------- field definitions ---------------- */
+  var FIELDS = {
+    eyebrow:  { label: "Eyebrow", type: "text" },
+    headline: { label: "Headline", type: "textarea", rows: 2 },
+    body:     { label: "Body copy", type: "textarea", rows: 4 },
+    ctaLabel: { label: "Link label", type: "text", hint: "Leave empty for no link." },
+    ctaHref:  { label: "Link URL", type: "text", hint: "A store path like /collections/linen, or the full URL." },
+    items:    { label: "Items", type: "textarea", rows: 5, hint: "One per line. Use Label | detail where a detail is supported." },
+    images:   { label: "Images", type: "textarea", rows: 5, hint: "One per line: image URL | caption. Placeholders are fine — the POC swaps them in the editor." },
+    speed:    { label: "Seconds per pass", type: "text", hint: "Higher is slower. 28 suits a six-phrase strip." },
+    flip:     { label: "Image side", type: "select", options: [["no","Image left, copy right"],["yes","Image right, copy left"]] }
+  };
+
+  /* ---------------- state ---------------- */
+  var DEFAULTS = {
+    statement: {
+      widgetName: "WEAR THE SLOWER SIDE.",
+      eyebrow: "Bombay Textile — No. 04",
+      headline: "Wear the slower side.",
+      body: "Handloom cotton, woven in Bhuj on pit looms that move at the pace of a pair of hands. Six metres a day, not six hundred. You can feel the difference in the drape.",
+      ctaLabel: "See the weave",
+      ctaHref: "/collections/handloom"
+    },
+    marquee: {
+      widgetName: "STORE TICKER",
+      items: "Free shipping over Rs. 1,499\n7-day easy returns\nHandloom, not powerloom\nShips in 48 hours from Ahmedabad",
+      speed: "28"
+    },
+    story: {
+      widgetName: "THE FABRIC STORY",
+      eyebrow: "The fabric",
+      headline: "Kala cotton, grown without a drop of irrigation.",
+      body: "Indigenous to Kutch, rain-fed, and short-staple — which is exactly why it spins into a yarn with texture instead of a flat, uniform thread. The bolls are hand-picked between November and February. What reaches the loom has never met a chemical defoliant.",
+      images: "REPLACE-fabric-loom.jpg | Pit loom, Bhuj",
+      ctaLabel: "Read the full story",
+      ctaHref: "/pages/our-fabric",
+      flip: "no"
+    },
+    promise: {
+      widgetName: "WHY BOMBAY TEXTILE",
+      eyebrow: "What you can count on",
+      items: "Woven, not printed | Every metre comes off a pit loom in Kutch.\n48-hour dispatch | Ordered before 2pm on a weekday, it ships the same day.\n7-day returns | Unworn, tags on, no questions and no restocking fee.\nSpeak to a human | WhatsApp us on the number in the footer, 10am to 7pm."
+    },
+    lookbook: {
+      widgetName: "THE SUMMER EDIT",
+      eyebrow: "Lookbook",
+      headline: "Six pieces for a Bombay April.",
+      images: "REPLACE-look-01.jpg | Kala cotton kurta\nREPLACE-look-02.jpg | Indigo wrap skirt\nREPLACE-look-03.jpg | Mul cotton shirt\nREPLACE-look-04.jpg | Handloom dupatta",
+      ctaLabel: "Shop the edit",
+      ctaHref: "/collections/summer"
+    }
+  };
+
+
+  /* ---------------- state ---------------- */
+  var state = {
+    type: "statement",
+    shape: "auto",
+    prefix: "btc-",
+    paper: "#F5F2EC",
+    ink: "#1A1A18",
+    accent: "#7A3B2E",
+    typeFeel: "serif",
+    goal: "A quiet editorial band, second section down the homepage, that tells first-time visitors why handloom costs more than powerloom. One oversized line, a short paragraph, a link to the collection. It should feel like the opening page of a print catalogue, not a banner ad.",
+    refine: ""
+  };
+  Object.keys(DEFAULTS.statement).forEach(function(k){ state[k] = DEFAULTS.statement[k]; });
+
+  var SHAPE_HINT = {
+    auto: "Choose the layout yourself from the goal above.",
+    statement: "An editorial statement band: one oversized headline, a hairline rule, a short paragraph, an optional link.",
+    marquee: "A thin scrolling marquee strip of short phrases, seamless loop, paused on hover.",
+    story: "A two-column story split: one image beside a block of narrative copy; stacked on mobile.",
+    promise: "A row of three or four short trust claims divided by hairlines; stacked on mobile.",
+    lookbook: "A grid of portrait image tiles with captions: two per row on mobile, four across on desktop."
+  };
+
+  /* ---------------- DOM ---------------- */
+  var $ = function(id){ return document.getElementById(id); };
+  var elTypes = $("types"), elFields = $("content-fields"), elPre = $("pane-code"),
+      elNote = $("pane-note"), elFrame = $("preview"), elHolder = $("frameHolder"),
+      elSize = $("size"), elAudit = $("audit"), elScore = $("audit-score"),
+      elStageLabel = $("stage-label"), elStatus = $("status"), elBanner = $("banner"),
+      elSource = $("source"), elOut = $("outpanel"), elShape = $("f-shape"),
+      btnGen = $("btn-gen"), btnStop = $("btn-stop"), btnRefine = $("btn-refine"), btnFix = $("btn-fix");
+
+  var mode = "ai";           /* "ai" | "tpl" */
+  var source = "tpl";        /* what is on screen right now */
+  var blobTpl = "", blobAi = "", current = "";
+  var aiPreviewNote = "", lastBase = "", failedChecks = [];
+  var sampleFn = null, ctl = null;
+
+  /* ---------------- the prompt ---------------- */
+  function rules(){
+    return [
+      "You write ONE paste-ready code snippet for a section of a Shopdeck storefront homepage.",
+      "A human pastes your output verbatim into a single code field (Shopdeck widget type code_snippet_widget). There is no build step and no way to load anything else.",
+      "",
+      "OUTPUT FORMAT - obey exactly:",
+      "- Raw code only. No prose, no explanation, no markdown code fences.",
+      "- Exactly three parts, in this order: the section markup, then one \x3Cstyle> block, then one \x3Cscript> block.",
+      "- Then one final line, and nothing after it: \x3C!-- PREVIEW: two sentences on how it looks on mobile and on desktop -->",
+      "",
+      "HARD RULES - every one of these is checked automatically after you answer:",
+      "1. Self-contained. No external script, no \x3Clink> stylesheet, no @import, no Google Fonts, no CDN, no web font file. Use only the font stack given in the brief, verbatim.",
+      "2. Prefix EVERY class name and EVERY CSS custom property with the prefix given in the brief. Every value of every class attribute. Not one unprefixed class anywhere.",
+      "3. Full-bleed the outer section so it escapes the theme's container: width:100vw; margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw); plus overflow hidden where a child could push the page sideways.",
+      "4. Mobile-first CSS with at least one @media (min-width: ...) block for desktop. One blob serves both; no separate mobile version.",
+      "5. Include an @media (prefers-reduced-motion: reduce) block that switches off every transition and animation and leaves all content visible.",
+      "6. Never park content at opacity:0. If you animate a reveal, the CSS default state must be visible; the script arms the pre-reveal state only for elements currently below the fold, then reveals them with IntersectionObserver. If the script fails, the section must still show its text - never a blank band.",
+      "7. The script is one IIFE. It queries only its own root class, begins with that lookup and 'if (!root) return;', and sets a prefixed data- attribute flag on the root so a second paste of the same blob cannot bind twice.",
+      "8. Semantic markup: one \x3Csection> root, a real heading element, alt text on every image, loading=\"lazy\" on images, and an aria-label when the section has no visible heading.",
+      "9. Any copy, colour, price or image URL the brief does not give you becomes an obvious placeholder such as REPLACE-hero.jpg or [SELLER NAME]. Never invent a brand fact, a price, a delivery promise, a phone number or a certification.",
+      "10. No inline event handler attributes, no document.write, no eval, no fetch, no localStorage, no cookies."
+    ].join("\n");
+  }
+
+  function brief(){
+    var t = tokens();
+    return [
+      "BRIEF",
+      "Section goal: " + (t.goal || "(not stated - ask for nothing, use placeholders)"),
+      "Widget row name: " + (t.widgetName || "(none given - invent a short ALL-CAPS title)"),
+      "CSS class prefix, use verbatim including the trailing dash: " + t.prefix,
+      "Ground / background colour: " + t.paper,
+      "Ink / text colour: " + t.ink,
+      "Accent colour: " + t.accent,
+      "Font stack, use verbatim: " + FONTS[t.typeFeel],
+      "Layout: " + (SHAPE_HINT[state.shape] || SHAPE_HINT.auto)
+    ].join("\n");
+  }
+
+  function fullPrompt(){ return rules() + "\n\n" + brief(); }
+
+  /* ---------------- output plumbing ---------------- */
+  function stripFences(txt){
+    var t = String(txt == null ? "" : txt).trim();
+    t = t.replace(/^```[a-zA-Z]*[ \t]*\r?\n?/, "").replace(/\r?\n?```[ \t]*$/, "");
+    return t.trim();
+  }
+
+  function show(blob, src){
+    current = blob;
+    source = src;
+    elSource.textContent = src === "claude" ? "Written by Claude" : "Template";
+    elSource.setAttribute("data-src", src);
+    elPre.textContent = blob;
+    elSize.textContent = blob.split("\n").length + " lines · " + (blob.length / 1024).toFixed(1) + " KB";
+    renderPreview(blob);
+    runAudit(blob);
+    renderNote();
+  }
+
+  /* ---------------- preview ---------------- */
+  var PLACEHOLDER = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect width="400" height="500" fill="#d8d4cc"/>' +
+    '<path d="M0 0 L400 500 M400 0 L0 500" stroke="#c2bdb2" stroke-width="1"/>' +
+    '<text x="200" y="244" font-family="monospace" font-size="15" fill="#6d675c" text-anchor="middle">SELLER IMAGE</text>' +
+    '<text x="200" y="266" font-family="monospace" font-size="11" fill="#8c8579" text-anchor="middle">renders on the storefront</text></svg>'
+  );
+
+  function renderPreview(blob){
+    var t = tokens();
+    elFrame.srcdoc =
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<style>html,body{margin:0;padding:0}body{background:' + t.paper + ';min-height:100%;overflow-x:hidden}.sdf-pad{height:1px}</style>' +
+      '<div class="sdf-pad"></div>' + blob + '<div class="sdf-pad"></div>' +
+      "\x3Cscript>(function(){var ph=" + JSON.stringify(PLACEHOLDER) + ";" +
+      "var imgs=document.images;for(var i=0;i<imgs.length;i++){(function(im){" +
+      "im.addEventListener('error',function(){im.src=ph;},{once:true});" +
+      "if(im.complete&&im.naturalWidth===0)im.src=ph;})(imgs[i]);}})();\x3C/script>";
+  }
+
+  /* ---------------- audit ---------------- */
+  function prefixReport(blob, p){
+    var re = /class\s*=\s*"([^"]*)"/g, m, bad = [], any = false;
+    while ((m = re.exec(blob)) !== null) {
+      any = true;
+      m[1].split(/\s+/).forEach(function(c){
+        if (c && c.indexOf(p) !== 0 && bad.indexOf(c) < 0) bad.push(c);
+      });
+    }
+    return { ok: any && !bad.length, bad: bad.slice(0, 4) };
+  }
+
+  function runAudit(blob){
+    var t = tokens();
+    var pr = prefixReport(blob, t.prefix);
+    var iStyle = blob.indexOf("\x3Cstyle"), iScript = blob.search(/\x3Cscript[\s>]/);
+    var checks = [
+      ["Order is markup → style → script", iStyle > 0 && iScript > iStyle,
+       "Shopdeck renders the field top to bottom, so styles must land before the script runs."],
+      ["Every class prefixed " + t.prefix, pr.ok,
+       pr.ok ? "Nothing here can be reached by the theme's own selectors."
+             : "Unprefixed: " + pr.bad.join(", ") + (pr.bad.length === 4 ? " …" : "") + " — the theme's CSS can hit these."],
+      ["No external script or stylesheet", !/\x3Cscript[^>]+src=/i.test(blob) && !/\x3Clink[^>]+stylesheet/i.test(blob) && !/@import/i.test(blob) && !/fonts\.googleapis/i.test(blob),
+       "Snippets ship no CDN dependencies — fonts come from device stacks."],
+      ["Full-bleed breakout present", blob.indexOf("100vw") > -1 && /50%\s*-\s*50vw/.test(blob),
+       "Lets the band escape the theme's max-width container."],
+      ["Mobile and desktop in one blob", /@media[^{]*\(min-width:/.test(blob),
+       "Mobile-first base plus at least one min-width breakpoint."],
+      ["Honours prefers-reduced-motion", /prefers-reduced-motion/.test(blob),
+       "Motion off, content still readable."],
+      ["Nothing parked at opacity:0", !/opacity:\s*0\s*[;}]/.test(blob),
+       "A reveal must start visible in CSS, so a script failure shows text instead of a blank band."],
+      ["Guarded IIFE, own root only", /if\s*\(\s*!\s*root\s*\)\s*return/.test(blob) && /data-[a-z0-9_-]+/i.test(blob),
+       "Safe to paste twice; touches no other widget."]
+    ];
+    var pass = 0;
+    failedChecks = [];
+    elAudit.innerHTML = checks.map(function(c){
+      if (c[1]) pass++; else failedChecks.push(c[0] + " — " + c[2]);
+      return '<li><span class="chip ' + (c[1] ? "chip--ok" : "chip--no") + '">' + (c[1] ? "pass" : "fails") + '</span>' +
+             '<span>' + esc(c[0]) + '<small>' + esc(c[2]) + '</small></span></li>';
+    }).join("");
+    elScore.textContent = pass + " / " + checks.length;
+    elScore.style.color = pass === checks.length ? "var(--ok)" : "var(--crit)";
+    btnFix.hidden = !(failedChecks.length && source === "claude" && sampleFn);
+  }
+
+  /* ---------------- handoff note ---------------- */
+  function previewNote(){
+    if (source === "claude") {
+      var m = current.match(/\x3C!--\s*PREVIEW:\s*([\s\S]*?)--\x3E/i);
+      if (m) return m[1].trim();
+      return "Check the rendered preview above — Claude did not include a preview line.";
+    }
+    return TEMPLATES[state.type].preview(tokens());
+  }
+
+  function renderNote(){
+    var t = tokens();
+    var name = t.widgetName || (source === "claude" ? "NEW SECTION" : TEMPLATES[state.type].name);
+    elNote.innerHTML =
+      '<section><h3>Widget</h3><p>Name the row <b>' + esc(name) + '</b> — type <code>code_snippet_widget</code>. ' +
+      'If a row with this title already exists on the Home page, use <b>Edit &gt;</b> on it rather than adding a second one; otherwise <b>+ Add Widget</b>.</p></section>' +
+      '<section><h3>Preview note</h3><p>' + esc(previewNote()) + '</p></section>' +
+      '<section><h3>Paste path</h3><ol>' +
+      '<li>Sellers → Sellers List</li>' +
+      '<li>Search filter → <b>Seller Id</b> → enter the seller id → find the row</li>' +
+      '<li><b>Log in as Seller</b> (a banner confirms)</li>' +
+      '<li>Website → Website Pages → <b>Home</b> (<code>/website/website-pages/home</code>)</li>' +
+      '<li>Find the <code>code_snippet_widget</code> row, or <b>+ Add Widget</b> → that type</li>' +
+      '<li><b>Edit &gt;</b> → paste the whole blob into the code field → save in the editor</li>' +
+      '<li>You take it from there: <b>Preview</b>, then <b>Publish</b>. Propagation can take up to ~2 hours.</li>' +
+      '</ol></section>' +
+      '<section><h3>Before you publish</h3><p>Swap every <code>REPLACE-</code> URL and <code>[BRACKETED]</code> placeholder for the real thing. ' +
+      'Classes are prefixed <code>' + esc(t.prefix) + '</code> to avoid collisions with the theme, but nothing here has been tested against this seller’s live CSS — the <b>Preview</b> step is where you confirm that.' +
+      (source === "claude" ? ' This blob was written by Claude from a brief: read it before you paste it.' : '') +
+      '</p></section>';
+  }
+
+  /* ---------------- template mode rendering ---------------- */
+  function normPrefix(v){
+    var s = String(v || "").replace(/[^A-Za-z0-9_-]/g, "");
+    if (!s) s = "sd";
+    if (!/[-_]$/.test(s)) s += "-";
+    return s.toLowerCase();
+  }
+
+  function tokens(){
+    var t = {};
+    Object.keys(state).forEach(function(k){ t[k] = state[k]; });
+    t.prefix = normPrefix(state.prefix);
+    return t;
+  }
+
+  function buildTemplate(){
+    var t = tokens(), tpl = TEMPLATES[state.type], out = tpl.build(t);
+    var S = "\x3Cstyle>", SE = "\x3C/style>", J = "\x3Cscript>", JE = "\x3C/script>";
+    return [
+      "\x3C!-- " + (t.widgetName || tpl.name) + " · Shopdeck code_snippet_widget --\x3E",
+      "\x3C!-- All classes prefixed " + t.prefix + " · no external scripts or stylesheets · mobile + desktop --\x3E",
+      out.html, "", S, out.css, SE, "", J, out.js, JE
+    ].join("\n");
+  }
+
+  function renderTypes(){
+    elTypes.innerHTML = Object.keys(TEMPLATES).map(function(k){
+      var tpl = TEMPLATES[k];
+      return '<li><button class="type" type="button" data-type="' + k + '" aria-pressed="' + (k === state.type) + '">' +
+        '<span class="type__glyph">' + tpl.glyph + '</span>' +
+        '<span><span class="type__name">' + esc(tpl.name) + '</span>' +
+        '<span class="type__desc">' + esc(tpl.desc) + '</span></span></button></li>';
+    }).join("");
+  }
+
+  function renderFields(){
+    elFields.innerHTML = TEMPLATES[state.type].fields.map(function(k){
+      var f = FIELDS[k], id = "cf-" + k, v = state[k] == null ? "" : state[k], input;
+      if (f.type === "textarea") {
+        input = '<textarea id="' + id + '" data-k="' + k + '" rows="' + (f.rows || 3) + '">' + esc(v) + '</textarea>';
+      } else if (f.type === "select") {
+        input = '<select id="' + id + '" data-k="' + k + '">' + f.options.map(function(o){
+          return '<option value="' + o[0] + '"' + (String(v) === o[0] ? " selected" : "") + '>' + esc(o[1]) + '</option>';
+        }).join("") + '</select>';
+      } else {
+        input = '<input type="text" id="' + id + '" data-k="' + k + '" value="' + esc(v) + '">';
+      }
+      return '<div class="field"><label for="' + id + '">' + esc(f.label) + '</label>' + input +
+             (f.hint ? '<span class="hint">' + esc(f.hint) + '</span>' : '') + '</div>';
+    }).join("");
+  }
+
+  function refreshTemplate(){
+    renderFields();
+    blobTpl = buildTemplate();
+    show(blobTpl, "tpl");
+  }
+
+  /* ---------------- status ---------------- */
+  function setStatus(kind, msg){
+    elStatus.className = "status" + (kind ? " status--" + kind : "");
+    elStatus.innerHTML = msg ? (kind ? '<span class="dot"></span>' : "") + "<span>" + esc(msg) + "</span>" : "";
+  }
+
+  function banner(msg){
+    if (!msg) { elBanner.removeAttribute("data-on"); elBanner.innerHTML = ""; return; }
+    elBanner.setAttribute("data-on", "1");
+    elBanner.innerHTML = '<svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true" style="flex:none;margin-top:2px;color:var(--marigold)"><circle cx="10" cy="10" r="8.25" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v5.5M10 13.6v.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>' + msg + "</span>";
+  }
+
+  function setBusy(on){
+    btnGen.disabled = on || !sampleFn;
+    btnRefine.disabled = on || !sampleFn || !blobAi;
+    btnFix.disabled = on;
+    btnStop.hidden = !on;
+    elOut.classList.toggle("streaming", on);
+  }
+
+  var ERR = {
+    not_granted: ["hide", "You didn't allow this page to use Claude, so generating is off for this visit. Reload the page to be asked again, or use a fixed template."],
+    sampling_disabled: ["hide", "Claude isn't available on this account, so generating is off. The fixed templates still work."],
+    not_declared: ["hide", "This page can no longer call Claude. Use a fixed template."],
+    capability_disabled: ["hide", "Claude isn't usable in this view. Use a fixed template."],
+    capability_removed: ["hide", "This viewer is too old to call Claude. Use a fixed template."],
+    rate_limited: ["err", "Too many requests, or you've hit your own Claude usage limit. Wait a minute, then press Generate again."],
+    session_expired: ["err", "Your Claude session expired. Sign in again in another tab, then press Generate."],
+    refused: ["err", "Claude declined this brief. Change what it asks for and try again."],
+    empty_completion: ["err", "Nothing came back. Simplify the brief or ask for a smaller section."],
+    prompt_too_large: ["err", "The brief is too long. Cut it down and try again."],
+    invalid_request: ["err", "That request was malformed. Reword the brief and try again."],
+    transform_error: ["err", "That request couldn't be prepared. Reword the brief and try again."],
+    queue_overflow: ["err", "Too many requests queued at once. Reload the page."],
+    upstream_error: ["err", "The connection to Claude dropped. Anything that arrived is kept below — press Generate to try again."]
+  };
+
+  /* ---------------- generate ---------------- */
+  function run(kind){
+    if (!sampleFn) return;
+    var input, ask;
+    if (kind === "new") {
+      if (!String(state.goal || "").trim()) { setStatus("err", "Write the brief first — what should this section do?"); return; }
+      lastBase = fullPrompt();
+      input = lastBase;
+    } else {
+      ask = kind === "fix"
+        ? "The snippet you just wrote fails these automatic checks:\n- " + failedChecks.join("\n- ") +
+          "\nFix every one of them."
+        : String(state.refine || "").trim();
+      if (!ask) { setStatus("err", "Say what you want changed."); return; }
+      input = [
+        { role: "user", content: lastBase || fullPrompt() },
+        { role: "assistant", content: current },
+        { role: "user", content: ask + "\n\nRewrite the complete snippet with that change. Same output format, same hard rules, nothing else in your reply." }
+      ];
+    }
+
+    ctl = new AbortController();
+    setBusy(true);
+    setStatus("wait", "Thinking — Claude is composing the section. This usually takes 20–60 seconds.");
+    var started = false;
+
+    sampleFn(input, {
+      signal: ctl.signal,
+      modelTier: "default",
+      cache: kind === "new",
+      onText: function(e){
+        if (!started) { started = true; setStatus("wait", "Writing the snippet…"); }
+        elPre.textContent = e.text;
+        elSize.textContent = e.text.split("\n").length + " lines · streaming";
+      }
+    }).then(function(res){
+      var blob = stripFences(res.text);
+      blobAi = blob;
+      show(blob, "claude");
+      setStatus("ok", res.truncated
+        ? "Cut short by length — ask for a smaller section, or refine it."
+        : "Done. Read the audit, then check the preview before you hand it over.");
+      setBusy(false);
+    }, function(e){
+      var code = e && e.code ? e.code : "upstream_error";
+      if (code === "cancelled") {
+        setStatus("", "");
+        if (current) elPre.textContent = current;
+        setBusy(false);
+        return;
+      }
+      var spec = ERR[code] || ERR.upstream_error;
+      if (spec[0] === "hide") {
+        sampleFn = null;
+        banner(esc(spec[1]));
+        setStatus("", "");
+        setMode("tpl");
+      } else {
+        if (e && e.text) { var partial = stripFences(e.text); blobAi = partial; show(partial, "claude"); }
+        else if (current) { elPre.textContent = current; }
+        setStatus("err", spec[1]);
+      }
+      setBusy(false);
+    });
+  }
+
+  /* ---------------- mode ---------------- */
+  function setMode(m){
+    mode = m;
+    $("mode-ai").setAttribute("aria-pressed", String(m === "ai"));
+    $("mode-tpl").setAttribute("aria-pressed", String(m === "tpl"));
+    $("panel-ai").hidden = m !== "ai";
+    $("panel-types").hidden = m !== "tpl";
+    $("panel-content").hidden = m !== "tpl";
+    if (m === "tpl") { refreshTemplate(); }
+    else if (blobAi) { show(blobAi, "claude"); }
+    else { blobTpl = buildTemplate(); show(blobTpl, "tpl"); }
+  }
+
+  /* ---------------- events ---------------- */
+  $("mode-ai").addEventListener("click", function(){ if (sampleFn || !blobAi) setMode("ai"); else setMode("ai"); });
+  $("mode-tpl").addEventListener("click", function(){ setMode("tpl"); });
+
+  elTypes.addEventListener("click", function(e){
+    var b = e.target.closest("button[data-type]");
+    if (!b) return;
+    var k = b.getAttribute("data-type");
+    if (k === state.type) return;
+    state.type = k;
+    var d = DEFAULTS[k] || {};
+    Object.keys(d).forEach(function(key){ state[key] = d[key]; });
+    renderTypes();
+    syncTokenInputs();
+    refreshTemplate();
+  });
+
+  function tokenTouched(){
+    elStageLabel.textContent = state.widgetName || (source === "claude" ? "New section" : TEMPLATES[state.type].name);
+    if (mode === "tpl" || source !== "claude") {
+      blobTpl = buildTemplate();
+      show(blobTpl, "tpl");
+    } else {
+      renderNote();
+      setStatus("", "Brand tokens changed — press Generate to rebuild with them.");
+    }
+  }
+
+  document.addEventListener("input", function(e){
+    var el = e.target, k = el.getAttribute && el.getAttribute("data-k"),
+        ck = el.getAttribute && el.getAttribute("data-color");
+    if (ck) {
+      state[ck] = el.value;
+      var twin = document.querySelector('.swatch__pick input[data-k="' + ck + '"]');
+      if (twin) twin.value = el.value;
+      tokenTouched();
+      return;
+    }
+    if (el === $("f-goal")) { state.goal = el.value; return; }
+    if (el === $("f-refine")) { state.refine = el.value; return; }
+    if (!k) return;
+    state[k] = el.value;
+    if (k === "paper" || k === "ink" || k === "accent") {
+      var pick = document.querySelector('input[type=color][data-color="' + k + '"]');
+      if (pick && /^#[0-9a-fA-F]{6}$/.test(el.value)) pick.value = el.value;
+    }
+    if (TEMPLATES[state.type].fields.indexOf(k) > -1) { blobTpl = buildTemplate(); show(blobTpl, "tpl"); return; }
+    tokenTouched();
+  });
+
+  document.addEventListener("change", function(e){
+    var el = e.target;
+    if (el === elShape) { state.shape = el.value; return; }
+    var k = el.getAttribute && el.getAttribute("data-k");
+    if (k && el.tagName === "SELECT") { state[k] = el.value; tokenTouched(); }
+  });
+
+  btnGen.addEventListener("click", function(){ run("new"); });
+  btnRefine.addEventListener("click", function(){ run("refine"); });
+  btnFix.addEventListener("click", function(){ run("fix"); });
+  btnStop.addEventListener("click", function(){ if (ctl) ctl.abort(); });
+
+  document.querySelectorAll(".seg button[data-device]").forEach(function(b){
+    b.addEventListener("click", function(){
+      elHolder.setAttribute("data-device", b.getAttribute("data-device"));
+      document.querySelectorAll(".seg button[data-device]").forEach(function(o){
+        o.setAttribute("aria-pressed", String(o === b));
+      });
+    });
+  });
+
+  var tabCode = $("tab-code"), tabNote = $("tab-note");
+  function selectTab(which){
+    var code = which === "code";
+    tabCode.setAttribute("aria-selected", String(code));
+    tabNote.setAttribute("aria-selected", String(!code));
+    elPre.hidden = !code;
+    elNote.hidden = code;
+    $("btn-copy").textContent = code ? "Copy" : "Copy note";
+  }
+  tabCode.addEventListener("click", function(){ selectTab("code"); });
+  tabNote.addEventListener("click", function(){ selectTab("note"); });
+
+  function noteText(){
+    var t = tokens();
+    return [
+      "Widget: " + (t.widgetName || "NEW SECTION") + "  (type: code_snippet_widget)",
+      "",
+      "Preview note: " + previewNote(),
+      "",
+      "Paste path (pro.shopdeck.com):",
+      "1. Sellers -> Sellers List",
+      "2. Search filter -> Seller Id -> enter seller id -> find row",
+      "3. Log in as Seller (banner confirms)",
+      "4. Website -> Website Pages -> Home (/website/website-pages/home)",
+      "5. Find the code_snippet_widget row, or + Add Widget -> that type",
+      "6. Edit > -> paste the blob into the code field -> save in the editor",
+      "7. You do Preview, then Publish. Propagation up to ~2 hours.",
+      "",
+      "Before publishing: replace every REPLACE- URL and [BRACKETED] placeholder.",
+      "Classes are prefixed " + t.prefix + " to avoid theme collisions, but this has not",
+      "been tested against the live theme CSS - confirm in the Preview step."
+    ].join("\n");
+  }
+
+  function flash(btn, msg){
+    var old = btn.textContent;
+    btn.textContent = msg;
+    setTimeout(function(){ btn.textContent = old; }, 1600);
+  }
+
+  $("btn-copy").addEventListener("click", function(){
+    var btn = this;
+    var text = tabCode.getAttribute("aria-selected") === "true" ? current : noteText();
+    var done = function(){ flash(btn, "Copied"); };
+    var fallback = function(){
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("style", "position:fixed;top:0;left:0;opacity:0.01");
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+      document.body.removeChild(ta);
+      if (ok) done(); else flash(btn, "Press Ctrl/Cmd+C");
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+  });
+
+  $("btn-select").addEventListener("click", function(){
+    var target = tabCode.getAttribute("aria-selected") === "true" ? elPre : elNote;
+    var range = document.createRange();
+    range.selectNodeContents(target);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    flash(this, "Selected");
+  });
+
+  function syncTokenInputs(){
+    document.querySelectorAll('.swatch__pick input[type=text]').forEach(function(el){
+      el.value = state[el.getAttribute("data-k")];
+    });
+    document.querySelectorAll('input[type=color]').forEach(function(el){
+      var v = state[el.getAttribute("data-color")];
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) el.value = v;
+    });
+    $("f-widget").value = state.widgetName || "";
+    $("f-prefix").value = state.prefix;
+    $("f-type").value = state.typeFeel;
+    elStageLabel.textContent = state.widgetName || TEMPLATES[state.type].name;
+  }
+
+  /* ---------------- boot ---------------- */
+  elShape.innerHTML = '<option value="auto">Let Claude choose the layout</option>' +
+    Object.keys(TEMPLATES).map(function(k){
+      return '<option value="' + k + '">' + esc(TEMPLATES[k].name) + '</option>';
+    }).join("");
+  $("f-goal").value = state.goal;
+  renderTypes();
+  renderFields();
+  syncTokenInputs();
+  blobTpl = buildTemplate();
+  show(blobTpl, "tpl");
+  selectTab("code");
+  setMode("ai");
+  setBusy(false);
+  btnGen.disabled = true;
+  setStatus("wait", "Checking whether this view can call Claude…");
+
+  (function(){
+    var api = window.claude;
+    if (!api || typeof api.use !== "function") {
+      sampleFn = null;
+      setStatus("", "");
+      banner("This copy of the page can't reach Claude — it only does that when opened as a published Artifact. The fixed templates below work anywhere.");
+      setMode("tpl");
+      setBusy(false);
+      return;
+    }
+    api.use("sample").then(function(fn){
+      if (!fn) {
+        sampleFn = null;
+        setStatus("", "");
+        banner("Claude isn't available in this view, so generating from a brief is off. The fixed templates still work.");
+        setMode("tpl");
+        setBusy(false);
+        return;
+      }
+      sampleFn = fn;
+      setBusy(false);
+      setStatus("", "Ready. Generating runs on your own Claude account.");
+    }, function(){
+      sampleFn = null;
+      setStatus("", "");
+      banner("Claude couldn't be reached in this view. The fixed templates still work.");
+      setMode("tpl");
+      setBusy(false);
+    });
+  })();
+
+})();
+</script>
