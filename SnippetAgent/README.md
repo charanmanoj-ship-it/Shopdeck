@@ -3,7 +3,7 @@
 AgentCore project that generates copy-paste **HTML, CSS, and JavaScript** snippets for websites.
 
 - **Framework:** Strands
-- **Model:** OpenAI (`gpt-4.1`)
+- **Model:** Anthropic Claude (`claude-sonnet-4-5-20250929`)
 - **Protocol:** HTTP
 - **Build:** CodeZip
 - **Memory:** none (can be added later)
@@ -15,7 +15,7 @@ This is a snippet *generator*, not an embeddable chat widget. Call it with a pro
 - Node.js 20+
 - Python 3.10+ and [uv](https://docs.astral.sh/uv/)
 - AgentCore CLI: `npm install -g @aws/agentcore` (v0.9.0+)
-- `OPENAI_API_KEY` in `SnippetAgent/agentcore/.env.local` for local runs
+- `ANTHROPIC_API_KEY` in `SnippetAgent/agentcore/.env.local` for local runs (never commit this file, never paste the key in chat)
 - AWS credentials only when you are ready to deploy
 
 ## Local development
@@ -24,7 +24,7 @@ From this directory (`SnippetAgent/`):
 
 ```bash
 # agentcore/.env.local
-OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
 
 agentcore dev
 ```
@@ -57,7 +57,7 @@ agentcore deploy
 agentcore invoke "Give me a responsive HTML/CSS pricing card snippet."
 ```
 
-First deploy needs AWS credentials, Bedrock AgentCore permissions, and an OpenAI credential in AgentCore Identity. Putting this on a public website comes after deploy (`agentcore fetch access`); default auth is IAM.
+First deploy needs AWS credentials, Bedrock AgentCore permissions, and an Anthropic credential in AgentCore Identity. Putting this on a public website comes after deploy (`agentcore fetch access`); default auth is IAM.
 
 ## Project layout
 
@@ -66,6 +66,6 @@ SnippetAgent/
 ├── agentcore/                 # CLI config, CDK, gitignored .env.local
 └── app/SnippetAgent/
     ├── main.py                # snippet-generator prompt + HTTP entrypoint
-    ├── model/load.py          # OpenAI model + OPENAI_API_KEY
+    ├── model/load.py          # Anthropic Claude model + ANTHROPIC_API_KEY
     └── test_snippet_agent.py
 ```

@@ -1,6 +1,7 @@
 import unittest
 
 from main import DEFAULT_SYSTEM_PROMPT, _extract_prompt, strip_trailing_tool_use
+from model.load import IDENTITY_ENV_VAR
 
 
 class ExtractPromptTests(unittest.TestCase):
@@ -38,6 +39,11 @@ class SystemPromptTests(unittest.TestCase):
         self.assertIn("css", prompt)
         self.assertIn("javascript", prompt)
         self.assertIn("vanilla", prompt)
+
+
+class ModelConfigTests(unittest.TestCase):
+    def test_uses_anthropic_api_key_env(self):
+        self.assertEqual(IDENTITY_ENV_VAR, "ANTHROPIC_API_KEY")
 
 
 if __name__ == "__main__":

@@ -23,7 +23,7 @@ invoking the agent.
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | Yes | OpenAI API key (local) or Identity provider name (deployed) |
+| `ANTHROPIC_API_KEY` | Yes | Anthropic Claude API key (local) or Identity provider name (deployed) |
 | `LOCAL_DEV` | No | Set to `1` to use `.env.local` instead of AgentCore Identity |
 
 # Developing locally

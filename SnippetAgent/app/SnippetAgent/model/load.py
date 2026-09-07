@@ -1,10 +1,10 @@
 import os
 
-from strands.models.openai import OpenAIModel
+from strands.models.anthropic import AnthropicModel
 from bedrock_agentcore.identity.auth import requires_api_key
 
 IDENTITY_PROVIDER_NAME = ""
-IDENTITY_ENV_VAR = "OPENAI_API_KEY"
+IDENTITY_ENV_VAR = "ANTHROPIC_API_KEY"
 
 
 @requires_api_key(provider_name=IDENTITY_PROVIDER_NAME)
@@ -17,9 +17,9 @@ def _get_api_key() -> str:
     """
     Uses AgentCore Identity for API key management in deployed environments.
     For local development, run via 'agentcore dev' which loads agentcore/.env.local.
-    OPENAI_API_KEY in the environment is always accepted so local invokes work.
+    ANTHROPIC_API_KEY in the environment is always accepted so local invokes work.
     """
-    api_key = os.getenv("OPENAI_API_KEY") or os.getenv(IDENTITY_ENV_VAR)
+    api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv(IDENTITY_ENV_VAR)
     if api_key:
         return api_key
     if os.getenv("LOCAL_DEV") == "1":
@@ -29,9 +29,10 @@ def _get_api_key() -> str:
     return _agentcore_identity_api_key_provider()
 
 
-def load_model() -> OpenAIModel:
-    """Get authenticated OpenAI model client."""
-    return OpenAIModel(
+def load_model() -> AnthropicModel:
+    """Get authenticated Anthropic Claude model client."""
+    return AnthropicModel(
         client_args={"api_key": _get_api_key()},
-        model_id="gpt-4.1",
+        model_id="claude-sonnet-4-5-20250929",
+        max_tokens=8192,
     )
