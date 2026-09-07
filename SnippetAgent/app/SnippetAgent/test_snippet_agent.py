@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from main import DEFAULT_SYSTEM_PROMPT, _extract_prompt, strip_trailing_tool_use
 from model.load import IDENTITY_ENV_VAR
@@ -44,6 +45,17 @@ class SystemPromptTests(unittest.TestCase):
 class ModelConfigTests(unittest.TestCase):
     def test_uses_anthropic_api_key_env(self):
         self.assertEqual(IDENTITY_ENV_VAR, "ANTHROPIC_API_KEY")
+
+
+class SamplePricingCardTests(unittest.TestCase):
+    def test_sample_has_three_tiers_and_billing_toggle(self):
+        html_path = Path(__file__).resolve().parents[2] / "examples" / "pricing-card.html"
+        html = html_path.read_text()
+        self.assertIn("Starter", html)
+        self.assertIn("Pro", html)
+        self.assertIn("Enterprise", html)
+        self.assertIn("billing-toggle", html)
+        self.assertIn('role="switch"', html)
 
 
 if __name__ == "__main__":

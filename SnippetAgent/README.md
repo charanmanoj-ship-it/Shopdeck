@@ -10,6 +10,16 @@ AgentCore project that generates copy-paste **HTML, CSS, and JavaScript** snippe
 
 This is a snippet *generator*, not an embeddable chat widget. Call it with a prompt; it returns three fenced code blocks you can paste into a page.
 
+## Preview a sample (no API key)
+
+Live generation uses Claude and needs Anthropic **API credits** (a chat subscription is not enough). Until credits are on the account, open the sample pricing cards:
+
+```bash
+python3 -m http.server 8765 --directory examples
+```
+
+Then open http://127.0.0.1:8765/pricing-card.html — three plans (Starter, Pro, Enterprise) and a monthly/yearly switch.
+
 ## Prerequisites
 
 - Node.js 20+
@@ -63,6 +73,7 @@ First deploy needs AWS credentials, Bedrock AgentCore permissions, and an Anthro
 
 ```
 SnippetAgent/
+├── examples/pricing-card.html # sample you can open without an API key
 ├── agentcore/                 # CLI config, CDK, gitignored .env.local
 └── app/SnippetAgent/
     ├── main.py                # snippet-generator prompt + HTTP entrypoint

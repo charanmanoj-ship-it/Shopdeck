@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sample pricing cards</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --ink: #1c1916;
+      --muted: #5c554c;
+      --line: #e4dccf;
+      --card: #fffcf7;
+      --accent: #c45c26;
+      --accent-ink: #fff;
+      --popular: #1c1916;
+      --radius: 18px;
+      --shadow: 0 12px 32px rgba(28, 25, 22, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    .sample-note {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.85rem;
+      background: #1c1916;
+      color: #f4efe6;
+      text-align: center;
+      padding: 0.7rem 1rem;
+    }
+
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 3rem 1.25rem 4rem;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.4rem;
+      text-align: center;
+    }
+
+    .lede {
+      text-align: center;
+      color: var(--muted);
+      margin: 0 auto 1.75rem;
+      max-width: 36rem;
+      font-size: 1.05rem;
+    }
+
+    .billing {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.95rem;
+    }
+
+    .billing span { color: var(--muted); }
+    .billing span.is-on { color: var(--ink); font-weight: 650; }
+
+    .switch {
+      position: relative;
+      width: 52px;
+      height: 30px;
+      border: 0;
+      border-radius: 999px;
+      background: #d8cfc0;
+      cursor: pointer;
+      padding: 0;
+    }
+    .switch[aria-checked="true"] { background: var(--accent); }
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.18s ease;
+    }
+    .switch[aria-checked="true"]::after { transform: translateX(22px); }
+    .switch:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+    .save {
+      font-size: 0.75rem;
+      background: #ead9c8;
+      color: #7a3a16;
+      border-radius: 999px;
+      padding: 0.15rem 0.5rem;
+      font-weight: 650;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    article {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.4rem 1.3rem 1.5rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+
+    article.popular {
+      background: var(--popular);
+      color: #f7f1e8;
+      border-color: var(--popular);
+      transform: translateY(-6px);
+    }
+    article.popular .muted,
+    article.popular .price-period { color: #cfc6ba; }
+
+    .plan {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin: 0 0 0.35rem;
+    }
+
+    .badge {
+      display: inline-block;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: var(--accent);
+      color: var(--accent-ink);
+      border-radius: 999px;
+      padding: 0.2rem 0.55rem;
+      margin-bottom: 0.6rem;
+      width: fit-content;
+    }
+
+    .price {
+      font-size: 2.4rem;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      margin: 0.2rem 0 0;
+    }
+    .price-period {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 0 0 1rem;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1.4rem;
+      flex: 1;
+    }
+    li {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.92rem;
+      padding: 0.38rem 0 0.38rem 1.4rem;
+      position: relative;
+      color: inherit;
+    }
+    li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    article.popular li::before { color: #f0a36a; }
+
+    .cta {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.75rem 1rem;
+      font-weight: 650;
+      background: var(--ink);
+      color: #fff;
+    }
+    article.popular .cta {
+      background: var(--accent);
+      color: #fff;
+    }
+    .cta:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr; }
+      article.popular { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <p class="sample-note">Sample preview of a SnippetAgent pricing-card snippet. Live Claude generation needs Anthropic API credits.</p>
+  <main class="wrap">
+    <h1>Simple pricing for growing stores</h1>
+    <p class="lede">Pick a plan. Switch monthly or yearly. This is the kind of webpage piece SnippetAgent writes for you.</p>
+
+    <div class="billing">
+      <span id="label-monthly" class="is-on">Monthly</span>
+      <button
+        class="switch"
+        type="button"
+        role="switch"
+        id="billing-toggle"
+        aria-checked="false"
+        aria-labelledby="label-monthly label-yearly"
+      ></button>
+      <span id="label-yearly">Yearly</span>
+      <span class="save">Save 20%</span>
+    </div>
+
+    <div class="grid">
+      <article>
+        <p class="plan">Starter</p>
+        <p class="price" data-monthly="$19" data-yearly="$15">$19</p>
+        <p class="price-period">per month</p>
+        <ul>
+          <li>1 storefront</li>
+          <li>Basic order dashboard</li>
+          <li>Email support</li>
+        </ul>
+        <a class="cta" href="#starter">Choose Starter</a>
+      </article>
+
+      <article class="popular">
+        <span class="badge">Most popular</span>
+        <p class="plan">Pro</p>
+        <p class="price" data-monthly="$49" data-yearly="$39">$49</p>
+        <p class="price-period">per month</p>
+        <ul>
+          <li>Unlimited products</li>
+          <li>Abandoned cart recovery</li>
+          <li>Priority chat support</li>
+        </ul>
+        <a class="cta" href="#pro">Choose Pro</a>
+      </article>
+
+      <article>
+        <p class="plan">Enterprise</p>
+        <p class="price" data-monthly="$129" data-yearly="$99">$129</p>
+        <p class="price-period">per month</p>
+        <ul>
+          <li>Custom SLAs</li>
+          <li>Dedicated success manager</li>
+          <li>SSO and audit logs</li>
+        </ul>
+        <a class="cta" href="#enterprise">Talk to sales</a>
+      </article>
+    </div>
+  </main>
+
+  <script>
+    const toggle = document.getElementById("billing-toggle");
+    const monthlyLabel = document.getElementById("label-monthly");
+    const yearlyLabel = document.getElementById("label-yearly");
+    const prices = document.querySelectorAll(".price");
+
+    function setYearly(yearly) {
+      toggle.setAttribute("aria-checked", yearly ? "true" : "false");
+      monthlyLabel.classList.toggle("is-on", !yearly);
+      yearlyLabel.classList.toggle("is-on", yearly);
+      prices.forEach((el) => {
+        el.textContent = yearly ? el.dataset.yearly : el.dataset.monthly;
+      });
+    }
+
+    toggle.addEventListener("click", () => {
+      setYearly(toggle.getAttribute("aria-checked") !== "true");
+    });
+  </script>
+</body>
+</html>
