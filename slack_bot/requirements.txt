@@ -1,0 +1,4 @@
+slack-bolt>=1.18,<2
+slack-sdk>=3.27,<4
+google-cloud-bigquery>=3.17,<4
+apscheduler>=3.10,<4
