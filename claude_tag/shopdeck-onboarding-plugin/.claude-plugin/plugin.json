@@ -1,0 +1,5 @@
+{
+  "name": "shopdeck-onboarding",
+  "version": "1.0.0",
+  "description": "ShopDeck seller-onboarding domain knowledge: BigQuery schema, funnel tasks, 48hr FT policy, cohort maturity rules, churn/pause states."
+}
