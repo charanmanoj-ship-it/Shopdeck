@@ -8,13 +8,18 @@ from . import queries
 
 IST = ZoneInfo("Asia/Kolkata")
 
+STUCK_FOOTNOTE = ("Stuck = meta_setup done in last 30d, no later fund_transfer, excludes paused & churned sellers. "
+                  "BigQuery may lag production.")
+
 
 @dataclass
 class StuckSeller:
     seller_id: str
     meta_completed_ist: datetime
     days_since_meta: int
-    ob_poc: str
+    ob_poc: str  # POC first name, or "(unassigned)"
+    poc_email: str | None = None
+    poc_source: str = "ticket"  # "ft_task" (open fund_transfer assignee) or "ticket" (ticket ob_poc)
 
 
 @dataclass
@@ -26,37 +31,80 @@ class DigestData:
     stuck: list[StuckSeller] = field(default_factory=list)
 
 
+def _run(bq_client, sql, params=()):
+    from google.cloud import bigquery
+
+    job_config = bigquery.QueryJobConfig(query_parameters=list(params))
+    return list(bq_client.query(sql, job_config=job_config).result())
+
+
+def fetch_stuck(bq_client, stuck_after_days: int) -> list[StuckSeller]:
+    from google.cloud import bigquery
+
+    rows = _run(bq_client, queries.STUCK_META_TO_FT,
+                [bigquery.ScalarQueryParameter("stuck_after_days", "INT64", stuck_after_days)])
+    return [StuckSeller(r["seller_id"], r["meta_completed_ist"], r["days_since_meta"],
+                        r["ob_poc"], r["poc_email"], r["poc_source"]) for r in rows]
+
+
 def fetch_digest(bq_client, stuck_after_days: int) -> DigestData:
     """Run all digest queries. bq_client is a google.cloud.bigquery.Client."""
     from google.cloud import bigquery
 
-    def run(sql, params=()):
-        job_config = bigquery.QueryJobConfig(query_parameters=list(params))
-        return list(bq_client.query(sql, job_config=job_config).result())
-
     completions = {
         r["task_type"]: r["sellers"]
-        for r in run(queries.TASK_COMPLETIONS,
-                     [bigquery.ArrayQueryParameter("task_types", "STRING", queries.TASK_TYPES)])
+        for r in _run(bq_client, queries.TASK_COMPLETIONS,
+                      [bigquery.ArrayQueryParameter("task_types", "STRING", queries.TASK_TYPES)])
     }
-    launches = run(queries.LAUNCHES)[0]["launches"]
-    lc = run(queries.LIFECYCLE_EVENTS)[0]
-    stuck = [
-        StuckSeller(r["seller_id"], r["meta_completed_ist"], r["days_since_meta"], r["ob_poc"])
-        for r in run(queries.STUCK_META_TO_FT,
-                     [bigquery.ScalarQueryParameter("stuck_after_days", "INT64", stuck_after_days)])
-    ]
+    launches = _run(bq_client, queries.LAUNCHES)[0]["launches"]
+    lc = _run(bq_client, queries.LIFECYCLE_EVENTS)[0]
     return DigestData(
         report_date=datetime.now(IST).date() - timedelta(days=1),
         launches=launches,
         completions=completions,
         lifecycle={k: lc[k] or 0 for k in ("paused", "unpaused", "revived", "churned")},
-        stuck=stuck,
+        stuck=fetch_stuck(bq_client, stuck_after_days),
     )
 
 
+def group_by_email(stuck: list[StuckSeller]) -> tuple[dict[str, list[StuckSeller]], list[StuckSeller]]:
+    """Split stuck sellers into {poc_email: sellers} and a list with no routable POC."""
+    by_email: dict[str, list[StuckSeller]] = {}
+    no_email: list[StuckSeller] = []
+    for s in stuck:
+        if s.poc_email:
+            by_email.setdefault(s.poc_email.strip().lower(), []).append(s)
+        else:
+            no_email.append(s)
+    return by_email, no_email
+
+
+def _seller_lines(sellers: list[StuckSeller], limit: int, show_poc: bool) -> list[str]:
+    lines = []
+    for s in sellers[:limit]:
+        line = f"`{s.seller_id}` — {s.days_since_meta}d since meta ({s.meta_completed_ist:%d %b})"
+        lines.append(f"{line} — {s.ob_poc}" if show_poc else line)
+    if len(sellers) > limit:
+        lines.append(f"_…and {len(sellers) - limit} more_")
+    return lines
+
+
+def build_poc_dm_blocks(poc_name: str, sellers: list[StuckSeller], as_of: date,
+                        stuck_after_days: int, limit: int) -> list[dict]:
+    """The DM one POC receives: only their own stuck sellers, oldest first."""
+    sellers = sorted(sellers, key=lambda s: -s.days_since_meta)
+    return [
+        {"type": "section", "text": {"type": "mrkdwn", "text":
+            f"Hi {poc_name} — *{len(sellers)} of your sellers* finished meta_setup "
+            f"over {stuck_after_days} days ago and haven't completed fund_transfer "
+            f"(as of {as_of:%d %b}, IST)."}},
+        {"type": "section", "text": {"type": "mrkdwn", "text": "\n".join(_seller_lines(sellers, limit, False))}},
+        {"type": "context", "elements": [{"type": "mrkdwn", "text": STUCK_FOOTNOTE}]},
+    ]
+
+
 def build_blocks(data: DigestData, stuck_after_days: int, stuck_list_limit: int) -> list[dict]:
-    """Render DigestData as Slack blocks. Pure function: no I/O."""
+    """Team-wide summary (optional channel post). Pure function: no I/O."""
     day = data.report_date.strftime("%a %d %b %Y")
     blocks: list[dict] = [
         {"type": "header", "text": {"type": "plain_text", "text": f"Onboarding digest — {day} (IST)"}},
@@ -83,21 +131,13 @@ def build_blocks(data: DigestData, stuck_after_days: int, stuck_list_limit: int)
     else:
         by_poc = Counter(s.ob_poc for s in data.stuck).most_common()
         poc_line = " · ".join(f"{poc}: {n}" for poc, n in by_poc)
-        lines = [
-            f"`{s.seller_id}` — {s.days_since_meta}d since meta ({s.meta_completed_ist:%d %b}) — {s.ob_poc}"
-            for s in data.stuck[:stuck_list_limit]
-        ]
-        more = len(data.stuck) - stuck_list_limit
-        if more > 0:
-            lines.append(f"_…and {more} more_")
         blocks.append({"type": "section", "text": {"type": "mrkdwn",
-                       "text": f"*Stuck by OB POC:* {poc_line}"}})
+                       "text": f"*Stuck by POC:* {poc_line}"}})
         blocks.append({"type": "section", "text": {"type": "mrkdwn",
-                       "text": "*Oldest first*\n" + "\n".join(lines)}})
+                       "text": "*Oldest first*\n" + "\n".join(_seller_lines(data.stuck, stuck_list_limit, True))}})
 
     blocks.append({"type": "context", "elements": [{"type": "mrkdwn", "text":
-        "Stuck = meta_setup done in last 30d, no later fund_transfer, excludes paused & churned sellers. "
-        "Counts are IST calendar day; BigQuery may lag production."}]})
+        STUCK_FOOTNOTE + " Counts are IST calendar day."}]})
     return blocks
 
 

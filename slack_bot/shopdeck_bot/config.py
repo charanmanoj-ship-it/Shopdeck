@@ -14,7 +14,8 @@ def _required(name: str) -> str:
 class Config:
     slack_bot_token: str
     slack_app_token: str
-    digest_channel: str
+    admin_id: str  # user or channel ID: gets the delivery report, unrouted sellers, errors, dry runs
+    digest_channel: str  # optional team summary channel; "" disables it
     gcp_project: str
     digest_hour_ist: int
     digest_minute_ist: int
@@ -26,7 +27,8 @@ class Config:
         return cls(
             slack_bot_token=_required("SLACK_BOT_TOKEN"),
             slack_app_token=_required("SLACK_APP_TOKEN") if require_app_token else os.environ.get("SLACK_APP_TOKEN", ""),
-            digest_channel=_required("DIGEST_CHANNEL_ID"),
+            admin_id=_required("DIGEST_ADMIN_ID"),
+            digest_channel=os.environ.get("DIGEST_CHANNEL_ID", ""),
             gcp_project=os.environ.get("GCP_PROJECT", "blitzscale-prod-project"),
             digest_hour_ist=int(os.environ.get("DIGEST_HOUR_IST", "9")),
             digest_minute_ist=int(os.environ.get("DIGEST_MINUTE_IST", "30")),

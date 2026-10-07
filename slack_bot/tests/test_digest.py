@@ -37,8 +37,10 @@ def test_every_partitioned_table_reference_has_created_at_filter():
             assert "created_at >=" in body and "created_at <" in body, f"{name}: {table} missing partition filter"
 
 
-def test_users_join_is_present_for_poc_names():
-    assert "users` u ON u._id = t.ob_poc" in queries.STUCK_META_TO_FT
+def test_poc_routing_prefers_open_ft_assignee_over_ticket_poc():
+    sql = queries.STUCK_META_TO_FT
+    assert "users` u ON u._id = COALESCE(o.assigned_poc, t.ob_poc)" in sql
+    assert "u.email AS poc_email" in sql
 
 
 def test_blocks_render_all_task_types_and_counts():

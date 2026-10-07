@@ -61,6 +61,7 @@ WHERE type = 'churn_seller_callback'
 # Sellers who completed meta_setup in the last 30 days, have no fund_transfer
 # completed after it, and are more than @stuck_after_days past meta.
 # Paused and churned sellers are excluded: chasing them wastes POC time.
+# Routed to the open fund_transfer assignee, else the latest ticket's ob_poc.
 # Sellers whose meta completed > 30 days ago drop out of this list by design.
 STUCK_META_TO_FT = f"""
 WITH meta AS (
@@ -99,17 +100,33 @@ latest_ticket AS (
   WHERE created_at >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY))
     AND created_at <  {_UPPER}
   GROUP BY seller_id
+),
+-- Whoever holds the open fund_transfer task is the person who can act on it.
+-- Ticket-level ob_poc can be stale if the task was reassigned.
+open_ft AS (
+  SELECT seller_id, ARRAY_AGG(assigned_poc ORDER BY created_at DESC LIMIT 1)[OFFSET(0)] AS assigned_poc
+  FROM `{DATASET}.ob_tasks`
+  WHERE type = 'fund_transfer'
+    AND status NOT IN ('completed', 'cancelled')
+    AND assigned_poc IS NOT NULL
+    AND created_at >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 120 DAY))
+    AND created_at <  {_UPPER}
+  GROUP BY seller_id
 )
 SELECT
   m.seller_id,
   DATETIME(m.meta_at, 'Asia/Kolkata') AS meta_completed_ist,
   DATE_DIFF(CURRENT_DATE('Asia/Kolkata'), DATE(m.meta_at, 'Asia/Kolkata'), DAY) AS days_since_meta,
-  COALESCE(u.first_name, '(unassigned)') AS ob_poc
+  COALESCE(o.assigned_poc, t.ob_poc) AS poc_id,
+  COALESCE(u.first_name, '(unassigned)') AS ob_poc,
+  u.email AS poc_email,
+  IF(o.assigned_poc IS NOT NULL, 'ft_task', 'ticket') AS poc_source
 FROM meta m
 LEFT JOIN ft f ON f.seller_id = m.seller_id AND f.ft_at >= m.meta_at
 LEFT JOIN lifecycle l ON l.seller_id = m.seller_id
 LEFT JOIN latest_ticket t ON t.seller_id = m.seller_id
-LEFT JOIN `{DATASET}.users` u ON u._id = t.ob_poc
+LEFT JOIN open_ft o ON o.seller_id = m.seller_id
+LEFT JOIN `{DATASET}.users` u ON u._id = COALESCE(o.assigned_poc, t.ob_poc)
 WHERE f.seller_id IS NULL
   AND DATE_DIFF(CURRENT_DATE('Asia/Kolkata'), DATE(m.meta_at, 'Asia/Kolkata'), DAY) > @stuck_after_days
   AND l.churn_at IS NULL

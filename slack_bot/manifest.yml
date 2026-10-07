@@ -1,20 +1,26 @@
 # Paste into https://api.slack.com/apps -> Create New App -> From an app manifest
 display_information:
   name: Onboarding Digest
-  description: Daily ShopDeck seller-onboarding digest from BigQuery
+  description: DMs each ShopDeck onboarding POC their stuck sellers, daily
 features:
+  app_home:
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: true
   bot_user:
     display_name: onboarding-digest
     always_online: true
   slash_commands:
     - command: /digest
-      description: Post the onboarding digest for yesterday (IST) in this channel
+      description: Show your own stuck sellers (only visible to you)
       should_escape: false
 oauth_config:
   scopes:
     bot:
       - chat:write
       - commands
+      - im:write          # open DMs with POCs
+      - users:read
+      - users:read.email  # match POC email (nushop.users) to Slack user
 settings:
   socket_mode_enabled: true
   org_deploy_enabled: false
