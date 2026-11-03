@@ -1,35 +1,30 @@
 -- =====================================================================
 -- Ring-time analysis: are POCs hanging up too early, and does it cause DNP?
--- Table: staging.exotel_call_details (seller_id, user_id/staff_id, start_time, end_time, duration)
+-- Table: blitzscale-prod-project.nushop.exotel_call_details
+--   uses the native `ringing_time` column (falls back to end-start-duration if NULL).
 -- Window: calls created 2026-09-01 onwards (covers all 185 DNP sellers' cagd history).
---
--- KEY ASSUMPTION (Q0 checks it):
---   ring_sec for an unanswered call  = end_time - start_time
---   ring_sec for an answered call    = (end_time - start_time) - duration   (duration = talk time)
--- If Q0 shows duration ~= end_time - start_time for NO_ANSWER calls, then `duration`
--- is total time (ring + talk), and ring-before-answer cannot be separated -> use Q2/Q3 on
--- unanswered calls only.
--- Exotel click-to-call usually rings the POC first, then the seller. If so, end-start also
--- includes the POC leg; Q0's min/percentiles will show a floor (e.g. never below ~5s).
+-- Compares the 185 DNP sellers vs all other sellers called in the same window.
+-- Voicemail / call-screen "answers" are separated out (they inflate long-ring answers).
 -- =====================================================================
 
--- ---------- Q0: what do the time columns mean? (run first) ----------
+-- ---------- Q0: sanity-check ringing_time (run first) ----------
+-- Confirms units (seconds?), whether it is the SELLER leg only, and how it relates to wall time.
 SELECT
   LOWER(call_type) AS call_type,
   UPPER(status)    AS status,
-  COUNT(*)         AS calls,
-  APPROX_QUANTILES(TIMESTAMP_DIFF(end_time, start_time, SECOND), 20) AS wall_sec_pctiles,  -- every 5%
-  APPROX_QUANTILES(SAFE_CAST(duration AS INT64), 20)                 AS duration_pctiles,
-  COUNTIF(SAFE_CAST(duration AS INT64) = TIMESTAMP_DIFF(end_time, start_time, SECOND)) AS duration_equals_wall
-FROM `staging.exotel_call_details`
+  COUNT(*)                                   AS calls,
+  COUNTIF(ringing_time IS NULL)              AS ringing_null,
+  APPROX_QUANTILES(SAFE_CAST(ringing_time AS FLOAT64), 20)            AS ringing_pctiles,     -- every 5%
+  APPROX_QUANTILES(TIMESTAMP_DIFF(end_time, start_time, SECOND), 20)  AS wall_sec_pctiles,
+  APPROX_QUANTILES(SAFE_CAST(duration AS INT64), 20)                  AS duration_pctiles
+FROM `blitzscale-prod-project.nushop.exotel_call_details`
 WHERE created_at >= TIMESTAMP('2026-09-01')
   AND created_at <  TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL 1 DAY))
-  AND start_time IS NOT NULL AND end_time IS NOT NULL
 GROUP BY 1, 2
 ORDER BY calls DESC;
 
 
--- ---------- Shared CTEs for Q1-Q3 (paste above each query) ----------
+-- ---------- Shared CTEs for Q1-Q3 (keep this block, swap the final SELECT) ----------
 WITH dnp AS (
   SELECT seller_id FROM UNNEST([
   '6a32680eec6853199b6141c2',
@@ -225,65 +220,74 @@ calls AS (
     LOWER(e.call_type) AS call_type,
     UPPER(e.status)    AS status,
     DATETIME(e.start_time, 'Asia/Kolkata') AS start_ist,
-    TIMESTAMP_DIFF(e.end_time, e.start_time, SECOND) AS wall_sec,
     SAFE_CAST(e.duration AS INT64) AS talk_sec,
-    CASE
-      WHEN UPPER(e.status) = 'CONNECTED'
-        THEN TIMESTAMP_DIFF(e.end_time, e.start_time, SECOND) - SAFE_CAST(e.duration AS INT64)
-      ELSE TIMESTAMP_DIFF(e.end_time, e.start_time, SECOND)
-    END AS ring_sec,
+    COALESCE(
+      SAFE_CAST(e.ringing_time AS FLOAT64),
+      IF(UPPER(e.status) = 'CONNECTED',
+         TIMESTAMP_DIFF(e.end_time, e.start_time, SECOND) - SAFE_CAST(e.duration AS INT64),
+         TIMESTAMP_DIFF(e.end_time, e.start_time, SECOND))
+    ) AS ring_sec,
+    e.ringing_time IS NULL AS ring_is_derived,
+    REGEXP_CONTAINS(LOWER(IFNULL(e.transcript, '')),
+      r'record your name|reason for calling|see if this person is available|leave (a|an|your|additional)|after the (tone|beep)|voice ?mail|trying to reach|has put your call|you have reached|switched off|not reachable|number you have dial'
+    ) AS is_voicemail,
     IF(d.seller_id IS NOT NULL, 'DNP_185', 'other_sellers') AS seller_group
-  FROM `staging.exotel_call_details` e
+  FROM `blitzscale-prod-project.nushop.exotel_call_details` e
   LEFT JOIN dnp d USING (seller_id)
   WHERE e.created_at >= TIMESTAMP('2026-09-01')
     AND e.created_at <  TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL 1 DAY))
     AND LOWER(e.call_type) LIKE 'outbound%'
-    AND e.start_time IS NOT NULL AND e.end_time IS NOT NULL
     AND e.seller_id IS NOT NULL
+),
+human AS (   -- answered by a human = CONNECTED and not voicemail/screen
+  SELECT *, (status = 'CONNECTED' AND NOT is_voicemail) AS human_answer FROM calls
 )
 
--- ---------- Q1: THE key test - how many answered calls were picked up AFTER 20s / 25s / 30s? ----------
--- If a big share of answers come after 20s, hanging up at ~20s is losing real connections.
+-- ---------- Q1: THE key test - share of HUMAN answers picked up after 20s / 25s / 30s ----------
 SELECT
   seller_group,
-  COUNTIF(status = 'CONNECTED')                                  AS answered_calls,
-  APPROX_QUANTILES(IF(status = 'CONNECTED', ring_sec, NULL), 4)  AS ring_before_answer_quartiles,
-  SAFE_DIVIDE(COUNTIF(status = 'CONNECTED' AND ring_sec > 20), COUNTIF(status = 'CONNECTED')) AS pct_answered_after_20s,
-  SAFE_DIVIDE(COUNTIF(status = 'CONNECTED' AND ring_sec > 25), COUNTIF(status = 'CONNECTED')) AS pct_answered_after_25s,
-  SAFE_DIVIDE(COUNTIF(status = 'CONNECTED' AND ring_sec > 30), COUNTIF(status = 'CONNECTED')) AS pct_answered_after_30s,
-  -- how long do we let UNANSWERED calls ring?
-  COUNTIF(status = 'NO_ANSWER')                                  AS unanswered_calls,
-  APPROX_QUANTILES(IF(status = 'NO_ANSWER', ring_sec, NULL), 4)  AS unanswered_ring_quartiles,
-  SAFE_DIVIDE(COUNTIF(status = 'NO_ANSWER' AND ring_sec < 25), COUNTIF(status = 'NO_ANSWER')) AS pct_unanswered_cut_before_25s
-FROM calls
+  COUNT(*)                                                         AS outbound_calls,
+  COUNTIF(human_answer)                                            AS human_answers,
+  COUNTIF(status = 'CONNECTED' AND is_voicemail)                   AS voicemail_answers,
+  APPROX_QUANTILES(IF(human_answer, ring_sec, NULL), 4)            AS ring_before_human_answer_quartiles,
+  SAFE_DIVIDE(COUNTIF(human_answer AND ring_sec > 20), COUNTIF(human_answer)) AS pct_human_answered_after_20s,
+  SAFE_DIVIDE(COUNTIF(human_answer AND ring_sec > 25), COUNTIF(human_answer)) AS pct_human_answered_after_25s,
+  SAFE_DIVIDE(COUNTIF(human_answer AND ring_sec > 30), COUNTIF(human_answer)) AS pct_human_answered_after_30s,
+  COUNTIF(status = 'NO_ANSWER')                                    AS unanswered_calls,
+  APPROX_QUANTILES(IF(status = 'NO_ANSWER', ring_sec, NULL), 4)    AS unanswered_ring_quartiles,
+  SAFE_DIVIDE(COUNTIF(status = 'NO_ANSWER' AND ring_sec < 25), COUNTIF(status = 'NO_ANSWER')) AS pct_unanswered_cut_before_25s,
+  SAFE_DIVIDE(COUNTIF(ring_is_derived), COUNT(*))                  AS pct_ring_derived
+FROM human
 GROUP BY seller_group;
 
 
--- ---------- Q2: per POC - ring time on unanswered calls and connect rate ----------
--- (replace the final SELECT of the CTE block with this)
+-- ---------- Q2: per POC (swap in as the final SELECT) ----------
 -- SELECT
---   COALESCE(u.first_name, c.poc_id) AS poc,
+--   COALESCE(u.first_name, h.poc_id) AS poc,
 --   COUNT(*) AS outbound_calls,
---   SAFE_DIVIDE(COUNTIF(c.status = 'CONNECTED'), COUNT(*)) AS connect_rate,
---   APPROX_QUANTILES(IF(c.status = 'NO_ANSWER', c.ring_sec, NULL), 2)[OFFSET(1)] AS median_ring_unanswered_sec,
---   SAFE_DIVIDE(COUNTIF(c.status = 'NO_ANSWER' AND c.ring_sec < 25), COUNTIF(c.status = 'NO_ANSWER')) AS pct_unanswered_cut_before_25s,
---   COUNTIF(c.seller_group = 'DNP_185') AS calls_to_dnp_sellers
--- FROM calls c
--- LEFT JOIN `blitzscale-prod-project.nushop.users` u ON c.poc_id = u._id
+--   SAFE_DIVIDE(COUNTIF(h.human_answer), COUNT(*)) AS human_answer_rate,
+--   APPROX_QUANTILES(IF(h.status = 'NO_ANSWER', h.ring_sec, NULL), 2)[OFFSET(1)] AS median_ring_unanswered_sec,
+--   SAFE_DIVIDE(COUNTIF(h.status = 'NO_ANSWER' AND h.ring_sec < 25), COUNTIF(h.status = 'NO_ANSWER')) AS pct_unanswered_cut_before_25s,
+--   COUNTIF(h.seller_group = 'DNP_185') AS calls_to_dnp_sellers
+-- FROM human h
+-- LEFT JOIN `blitzscale-prod-project.nushop.users` u ON h.poc_id = u._id
 -- GROUP BY poc
 -- HAVING outbound_calls >= 50
 -- ORDER BY median_ring_unanswered_sec;
 
 
--- ---------- Q3: does ringing longer actually get answered more? ----------
--- Answer rate by how long the call was allowed to ring (bucket uses ring_sec for both outcomes).
+-- ---------- Q3: answer rate by how long the call rang (swap in as the final SELECT) ----------
+-- Read with care: a call that is answered stops ringing, so long-ring buckets are mostly
+-- unanswered by construction. Use this as "cumulative pickup curve": for each bucket,
+-- human_answers / calls that rang at least that long.
 -- SELECT
 --   seller_group,
---   CASE WHEN ring_sec < 15 THEN '00-14s' WHEN ring_sec < 20 THEN '15-19s'
---        WHEN ring_sec < 25 THEN '20-24s' WHEN ring_sec < 30 THEN '25-29s'
---        WHEN ring_sec < 40 THEN '30-39s' ELSE '40s+' END AS ring_bucket,
+--   CASE WHEN ring_sec < 10 THEN '00-09s' WHEN ring_sec < 15 THEN '10-14s'
+--        WHEN ring_sec < 20 THEN '15-19s' WHEN ring_sec < 25 THEN '20-24s'
+--        WHEN ring_sec < 30 THEN '25-29s' WHEN ring_sec < 40 THEN '30-39s' ELSE '40s+' END AS ring_bucket,
 --   COUNT(*) AS calls,
---   COUNTIF(status = 'CONNECTED') AS answered
--- FROM calls
--- WHERE status IN ('CONNECTED', 'NO_ANSWER')
+--   COUNTIF(human_answer) AS human_answers,
+--   COUNTIF(status = 'CONNECTED' AND is_voicemail) AS voicemail_answers,
+--   COUNTIF(status = 'NO_ANSWER') AS unanswered
+-- FROM human
 -- GROUP BY 1, 2 ORDER BY 1, 2;
